@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pill } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,27 +23,40 @@ export default function LoginPage() {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
+        const { data, error } = await supabase
+          .from("pasien")
+          .select("*")
+          .eq("email", email)
+          .eq("password", password)
+          .single();
+
+        if (error || !data) {
+          throw new Error("Invalid email or password");
+        }
+        
+        login(data);
         router.push("/chat");
       } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (error) throw error;
+        // Check if email already exists
+        const { data: existing } = await supabase
+          .from("pasien")
+          .select("id")
+          .eq("email", email)
+          .maybeSingle();
 
-        // Create pasien record
-        if (data.user) {
-          const { error: dbError } = await supabase.from("pasien").insert([
-            { id: data.user.id, email: email, nama: nama }
-          ]);
-          if (dbError) throw dbError;
+        if (existing) {
+          throw new Error("Email already registered");
         }
 
+        const { data, error } = await supabase
+          .from("pasien")
+          .insert([{ email, password, nama }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        login(data);
         router.push("/chat");
       }
     } catch (err: any) {

@@ -12,11 +12,12 @@ DROP TABLE IF EXISTS public.chat_db CASCADE;
 DROP TABLE IF EXISTS public.users CASCADE;
 
 -- 1. PASIEN
--- Utilizing Supabase Auth (auth.users) for secure authentication
+-- Manual authentication table
 CREATE TABLE public.pasien (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nama TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL
 );
 
 -- 2. Obat

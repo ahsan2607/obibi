@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 export function Sidebar() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
   const [chats, setChats] = useState<{chat_id: number}[]>([]);
 
@@ -28,8 +28,8 @@ export function Sidebar() {
     }
   }, [user]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    logout();
     router.push("/");
   };
 
