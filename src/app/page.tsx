@@ -59,8 +59,9 @@ export default function LoginPage() {
         login(data);
         router.push("/chat");
       }
-    } catch (err: any) {
-      setError(err.message || "Authentication failed. Please try again.");
+    } catch (err) {
+      console.error(err)
+      setError("Authentication failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
