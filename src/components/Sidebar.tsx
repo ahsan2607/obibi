@@ -2,10 +2,10 @@
 
 import { useAuth } from "./AuthProvider";
 import { useRouter } from "next/navigation";
-import { LogOut, MessageSquare, Pill, Plus, Calendar, FileText, AlertTriangle } from "lucide-react";
+import { LogOut, MessageSquare, Pill, Plus, Calendar, FileText, AlertTriangle, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase/client";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -18,7 +18,7 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
   const router = useRouter();
   const [chats, setChats] = useState<{ chat_id: number }[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false); // Desktop collapse
-
+  
   // Fetch chats
   useEffect(() => {
     if (user) {
@@ -94,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
             {!isCollapsed && (
               <div>
                 <h2 className="font-semibold text-lg text-blue-600">HealthAssist</h2>
-                <p className="text-sm text-gray-500 truncate">Hi, {user.nama}</p>
+                <p className="text-sm text-gray-500 truncate">Hi, {user.name}</p>
               </div>
             )}
           </div>
@@ -122,6 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
           {[
+            { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
             { href: "/obat", icon: Pill, label: "Obat" },
             { href: "/jadwal-obat", icon: Calendar, label: "Jadwal Obat" },
             { href: "/laporan-kepatuhan", icon: FileText, label: "Laporan Kepatuhan" },

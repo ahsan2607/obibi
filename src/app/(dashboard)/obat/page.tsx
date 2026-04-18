@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/AuthProvider";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase/client";
 import { Obat } from "@/lib/types";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";

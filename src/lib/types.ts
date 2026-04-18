@@ -1,6 +1,6 @@
 export type Pasien = {
   id: string; // auth.users.id
-  nama: string;
+  name: string;
   email: string;
 };
 

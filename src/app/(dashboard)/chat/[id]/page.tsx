@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/AuthProvider";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase/client";
 import { Send, User as UserIcon, Bot } from "lucide-react";
 // import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
