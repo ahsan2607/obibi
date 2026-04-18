@@ -1,14 +1,14 @@
 "use client";
 
 import { useAuth } from "@/components/AuthProvider";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase/client";
 import { Send, User as UserIcon, Bot } from "lucide-react";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 export default function ChatSessionPage({ params }: { params: { id: string } }) {
   const { user } = useAuth();
-  const router = useRouter();
+  // const router = useRouter();
   const [chatLog, setChatLog] = useState<string[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
