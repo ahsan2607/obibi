@@ -3,6 +3,7 @@
 import { Sidebar } from "@/components/Sidebar";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import ButtonBita from "./ButtonBita";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false); // Mobile drawer
