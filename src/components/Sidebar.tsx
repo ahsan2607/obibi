@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
             </div>
             {!isCollapsed && (
               <div>
-                <h2 className="font-semibold text-lg text-blue-600">HealthAssist</h2>
+                <h2 className="font-semibold text-lg text-blue-600">Obibi</h2>
                 <p className="text-sm text-gray-500 truncate">Hi, {user.name}</p>
               </div>
             )}
