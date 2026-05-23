@@ -1,237 +1,141 @@
-"use client";
-
-import { useAuth } from "@/components/AuthProvider";
-import { supabase } from "@/lib/supabase";
-import { LaporanKepatuhan } from "@/lib/types";
-import { BellRing, CalendarCheck2, ClipboardList, ShieldAlert } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-
-type StatusKategori = "patuh" | "cukup" | "tidak" | "lainnya";
-
-function getStatusKategori(status: string): StatusKategori {
-  const normalized = status.toLowerCase().trim();
-
-  if (normalized === "patuh" || normalized.includes("taat")) {
-    return "patuh";
-  }
-  if (normalized.includes("kurang") || normalized.includes("cukup")) {
-    return "cukup";
-  }
-  if (normalized.includes("tidak") || normalized.includes("non")) {
-    return "tidak";
-  }
-  return "lainnya";
-}
-
-function formatTanggal(value: string): string {
-  const date = new Date(value);
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-}
-
-function statusBadgeClass(status: StatusKategori): string {
-  if (status === "patuh") return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  if (status === "cukup") return "bg-amber-50 text-amber-700 border-amber-200";
-  if (status === "tidak") return "bg-rose-50 text-rose-700 border-rose-200";
-  return "bg-slate-50 text-slate-700 border-slate-200";
-}
+import { CheckCircle2, Circle, TrendingUp, AlertCircle } from "lucide-react";
 
 export default function LaporanKepatuhanPage() {
-  const { user } = useAuth();
-  const [laporanList, setLaporanList] = useState<LaporanKepatuhan[]>([]);
-  const [totalJadwal, setTotalJadwal] = useState(0);
-  const [reminderAktif, setReminderAktif] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const chartData = [
+    { date: "7 Ags", percent: 56 },
+    { date: "8 Ags", percent: 78 },
+    { date: "9 Ags", percent: 83 },
+    { date: "10 Ags", percent: 100 },
+    { date: "11 Ags", percent: 45 },
+    { date: "12 Ags", percent: 90 },
+    { date: "13 Ags", percent: 75 },
+  ];
 
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchLaporanKepatuhan = async () => {
-      setLoading(true);
-
-      const { data: laporanData, error: laporanError } = await supabase
-        .from("laporan_kepatuhan")
-        .select("laporan_id, pasien_id, tanggal, status_kepatuhan")
-        .eq("pasien_id", user.id)
-        .order("tanggal", { ascending: false });
-
-      if (laporanError) {
-        console.error("Failed to fetch laporan_kepatuhan", laporanError);
-        setLoading(false);
-        return;
-      }
-
-      const laporan = (laporanData || []) as LaporanKepatuhan[];
-      setLaporanList(laporan);
-
-      if (laporan.length === 0) {
-        setTotalJadwal(0);
-        setReminderAktif(0);
-        setLoading(false);
-        return;
-      }
-
-      const laporanIds = laporan.map((item) => item.laporan_id);
-
-      const { data: jadwalData, error: jadwalError } = await supabase
-        .from("jadwal_obat")
-        .select("jadwal_id")
-        .in("laporan_id", laporanIds);
-
-      if (jadwalError) {
-        console.error("Failed to fetch jadwal_obat", jadwalError);
-        setTotalJadwal(0);
-        setReminderAktif(0);
-        setLoading(false);
-        return;
-      }
-
-      const jadwalIds = (jadwalData || []).map((item: { jadwal_id: number }) => item.jadwal_id);
-      setTotalJadwal(jadwalIds.length);
-
-      if (jadwalIds.length === 0) {
-        setReminderAktif(0);
-        setLoading(false);
-        return;
-      }
-
-      const { data: reminderData, error: reminderError } = await supabase
-        .from("reminder")
-        .select("reminder_id")
-        .in("jadwal_id", jadwalIds)
-        .eq("status", true);
-
-      if (reminderError) {
-        console.error("Failed to fetch reminder", reminderError);
-        setReminderAktif(0);
-      } else {
-        setReminderAktif((reminderData || []).length);
-      }
-
-      setLoading(false);
-    };
-
-    fetchLaporanKepatuhan();
-  }, [user]);
-
-  const summary = useMemo(() => {
-    let patuh = 0;
-    let cukup = 0;
-    let tidak = 0;
-
-    laporanList.forEach((item) => {
-      const kategori = getStatusKategori(item.status_kepatuhan || "");
-      if (kategori === "patuh") patuh += 1;
-      if (kategori === "cukup") cukup += 1;
-      if (kategori === "tidak") tidak += 1;
-    });
-
-    const total = laporanList.length;
-    const skor = total > 0 ? Math.round((patuh / total) * 100) : 0;
-
-    return { patuh, cukup, tidak, total, skor };
-  }, [laporanList]);
-
-  if (!user) return null;
+  const todayMedicines = [
+    { id: 1, name: "Amlodipine 5mg", dosage: "1 tablet, Sesudah makan", time: "Pagi (08:00)", status: "taken" },
+    { id: 2, name: "Metformin 500mg", dosage: "1 tablet, Sesudah makan", time: "Siang (13:00)", status: "pending" },
+    { id: 3, name: "Simvastatin 20mg", dosage: "1 tablet, Malam sebelum tidur", time: "Malam (20:00)", status: "pending" },
+  ];
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 bg-white text-gray-800">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-cyan-50 p-6">
-          <h1 className="text-2xl font-bold text-gray-900">Laporan Kepatuhan</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Ringkasan kepatuhan minum obat untuk {user.nama}. Data diperbarui dari catatan laporan dan jadwal obat Anda.
-          </p>
+    <div className="flex-1 p-6 lg:p-8 overflow-y-auto bg-gray-50/50">
+      <div className="max-w-4xl mx-auto space-y-8">
+        
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Laporan Kepatuhan</h1>
+          <p className="text-gray-500 mt-2">Pantau tingkat kepatuhan minum obat Anda setiap hari.</p>
         </div>
 
-        {loading ? (
-          <div className="rounded-xl border border-gray-200 bg-gray-50 py-12 text-center text-gray-500">
-            Memuat laporan kepatuhan...
+        {/* Chart Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:p-8">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-500" />
+              Analisis 7 hari terakhir patuh minum obat
+            </h2>
           </div>
-        ) : laporanList.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-14 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-              <ClipboardList size={24} />
+          
+          <div className="relative h-64 w-full mt-4">
+            {/* Y-axis labels */}
+            <div className="absolute left-0 top-0 bottom-8 w-12 flex flex-col justify-between text-xs text-gray-400 text-right pr-4">
+              <span>100%</span>
+              <span>75%</span>
+              <span>50%</span>
+              <span>25%</span>
+              <span>0%</span>
             </div>
-            <h2 className="text-xl font-semibold text-gray-800">Belum Ada Data Laporan</h2>
-            <p className="mt-2 text-sm text-gray-500 max-w-xl mx-auto">
-              Data kepatuhan akan muncul setelah Anda memiliki entri di tabel laporan kepatuhan dan jadwal obat.
-            </p>
+            
+            {/* Chart Area */}
+            <div className="absolute left-12 right-0 top-0 bottom-8 flex justify-between items-end gap-2 border-l border-b border-gray-200 pb-1">
+              {/* Horizontal grid lines */}
+              <div className="absolute left-0 right-0 bottom-0 top-0 flex flex-col justify-between pointer-events-none">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="w-full border-t border-gray-100 border-dashed" />
+                ))}
+              </div>
+
+              {/* Bars */}
+              {chartData.map((item, index) => (
+                <div key={index} className="relative flex flex-col items-center w-full group z-10 h-full justify-end">
+                  {/* Tooltip on Hover */}
+                  <div className="absolute -top-10 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-20">
+                    {item.percent}% Patuh
+                  </div>
+                  
+                  {/* Percentage above bar */}
+                  <span className="text-xs font-medium text-gray-600 mb-2">{item.percent}%</span>
+                  
+                  {/* Bar */}
+                  <div 
+                    className={`w-full max-w-[3rem] rounded-t-md transition-all duration-500 hover:opacity-80
+                      ${item.percent >= 80 ? 'bg-gradient-to-t from-green-500 to-green-400' : 
+                        item.percent >= 50 ? 'bg-gradient-to-t from-yellow-500 to-yellow-400' : 
+                        'bg-gradient-to-t from-red-500 to-red-400'}`}
+                    style={{ height: `${item.percent}%` }}
+                  ></div>
+                </div>
+              ))}
+            </div>
+            
+            {/* X-axis labels */}
+            <div className="absolute left-12 right-0 bottom-0 h-8 flex justify-between items-end pt-2">
+              {chartData.map((item, index) => (
+                <div key={index} className="w-full text-center text-xs text-gray-500 font-medium truncate px-1">
+                  {item.date}
+                </div>
+              ))}
+            </div>
           </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              <div className="rounded-xl border border-gray-200 p-5 bg-white shadow-sm">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-500">Skor Kepatuhan</p>
-                  <CalendarCheck2 size={18} className="text-blue-600" />
+        </div>
+
+        {/* Medications List Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-orange-500" />
+              Obat yang harus di minum hari ini:
+            </h2>
+          </div>
+          
+          <div className="space-y-4">
+            {todayMedicines.map((med) => (
+              <div 
+                key={med.id} 
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors gap-4"
+              >
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-800">{med.name}</h3>
+                  <div className="text-sm text-gray-500 mt-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                    <span>{med.dosage}</span>
+                    <span className="hidden sm:inline text-gray-300">•</span>
+                    <span className="text-blue-600 font-medium">{med.time}</span>
+                  </div>
                 </div>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{summary.skor}%</p>
-                <p className="text-xs text-gray-500 mt-2">Berdasarkan {summary.total} laporan</p>
+                
+                <button 
+                  className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 shrink-0
+                    ${med.status === 'taken' 
+                      ? 'bg-green-50 text-green-700 border border-green-200 cursor-default' 
+                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow active:scale-95'}`}
+                >
+                  {med.status === 'taken' ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      Sudah diminum
+                    </>
+                  ) : (
+                    <>
+                      <Circle className="w-4 h-4" />
+                      Tandai sudah minum
+                    </>
+                  )}
+                </button>
               </div>
+            ))}
+          </div>
+        </div>
 
-              <div className="rounded-xl border border-gray-200 p-5 bg-white shadow-sm">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-500">Status Patuh</p>
-                  <span className="text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-700">Patuh</span>
-                </div>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{summary.patuh}</p>
-                <p className="text-xs text-gray-500 mt-2">Entri dengan kepatuhan baik</p>
-              </div>
-
-              <div className="rounded-xl border border-gray-200 p-5 bg-white shadow-sm">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-500">Total Jadwal Obat</p>
-                  <ShieldAlert size={18} className="text-amber-600" />
-                </div>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{totalJadwal}</p>
-                <p className="text-xs text-gray-500 mt-2">Jadwal terhubung ke laporan</p>
-              </div>
-
-              <div className="rounded-xl border border-gray-200 p-5 bg-white shadow-sm">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-500">Reminder Aktif</p>
-                  <BellRing size={18} className="text-cyan-600" />
-                </div>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{reminderAktif}</p>
-                <p className="text-xs text-gray-500 mt-2">Reminder dengan status aktif</p>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h2 className="font-semibold text-gray-900">Riwayat Laporan Terbaru</h2>
-                <span className="text-xs text-gray-500">{laporanList.length} entri</span>
-              </div>
-
-              <div className="divide-y divide-gray-100">
-                {laporanList.slice(0, 8).map((item) => {
-                  const kategori = getStatusKategori(item.status_kepatuhan || "");
-
-                  return (
-                    <div
-                      key={item.laporan_id}
-                      className="px-5 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2"
-                    >
-                      <div>
-                        <p className="font-medium text-gray-900">Laporan #{item.laporan_id}</p>
-                        <p className="text-sm text-gray-500">Tanggal: {formatTanggal(item.tanggal)}</p>
-                      </div>
-                      <span
-                        className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold w-fit ${statusBadgeClass(kategori)}`}
-                      >
-                        {item.status_kepatuhan || "Belum Diisi"}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </>
-        )}
       </div>
     </div>
   );
