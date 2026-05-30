@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
-import { ChevronLeft, ChevronRight, Loader, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader, AlertCircle, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 // Types
@@ -10,9 +10,7 @@ interface Schedule {
   id: string;
   medicine_name: string;
   dosage: string;
-  time: string;
-  date: string;
-  user_id: string;
+  waktu_minum: Date;
 }
 
 // Pastel color palette with thick left border
@@ -32,9 +30,19 @@ export default function JadwalObatPage() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 5, 16)); // Start from a Monday
+  const [obatCatalog, setObatCatalog] = useState<any[]>([]);
+  const [currentDate, setCurrentDate] = useState(new Date()); // Start from today
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-  const [miniCalendarMonth, setMiniCalendarMonth] = useState(new Date(2025, 5)); // Start from June 2025
+  const [miniCalendarMonth, setMiniCalendarMonth] = useState(new Date()); // Start from current month
+  const [showForm, setShowForm] = useState(false);
+
+  // Form states
+  const [formNamaObat, setFormNamaObat] = useState("");
+  const [formJenisObat, setFormJenisObat] = useState("");
+  const [formDosis, setFormDosis] = useState("");
+  const [formWaktuMinum, setFormWaktuMinum] = useState("");
+  const [formWaktuKirimReminder, setFormWaktuKirimReminder] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   // Slot waktu dari 00:00 hingga 23:00 (24 jam)
   const timeSlots = Array.from({ length: 24 }, (_, i) => {
@@ -49,8 +57,16 @@ export default function JadwalObatPage() {
   useEffect(() => {
     if (user) {
       fetchSchedules();
+      fetchObatCatalog();
     }
   }, [user]);
+
+  const fetchObatCatalog = async () => {
+    const { data } = await supabase.from("obat").select("nama_obat");
+    if (data) {
+      setObatCatalog(data);
+    }
+  };
 
   const fetchSchedules = async () => {
     try {
@@ -60,6 +76,7 @@ export default function JadwalObatPage() {
       const { data, error: fetchError } = await supabase
         .from("jadwal_obat")
         .select("*")
+        .eq("pasien_id", user?.id)
         .order("waktu_minum", { ascending: true });
 
       if (fetchError) {
@@ -70,20 +87,11 @@ export default function JadwalObatPage() {
 
       // Mapping data dari jadwal_obat ke format Schedule
       const mappedSchedules = (data || []).map((item: any) => {
-        const waktuMinum = new Date(item.waktu_minum);
-        const time = `${String(waktuMinum.getHours()).padStart(2, "0")}:${String(waktuMinum.getMinutes()).padStart(2, "0")}`;
-        const year = waktuMinum.getFullYear();
-        const month = String(waktuMinum.getMonth() + 1).padStart(2, "0");
-        const day = String(waktuMinum.getDate()).padStart(2, "0");
-        const date = `${year}-${month}-${day}`;
-
         return {
           id: String(item.jadwal_id),
           medicine_name: item.nama_obat,
-          dosage: item.dosis,
-          time: time,
-          date: date,
-          user_id: "",
+          dosage: item.dosis || "",
+          waktu_minum: new Date(item.waktu_minum),
         };
       });
 
@@ -116,15 +124,57 @@ export default function JadwalObatPage() {
 
   // Dapatkan jadwal untuk hari dan waktu tertentu
   const getSchedulesForDayTime = (dayIndex: number, timeSlot: string) => {
-    const date = weekDates[dayIndex];
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const dateStr = `${year}-${month}-${day}`;
+    const targetDate = weekDates[dayIndex];
+    const targetHour = parseInt(timeSlot.split(":")[0]);
     
-    return schedules.filter(
-      (s) => s.date === dateStr && s.time.startsWith(timeSlot.split(":")[0])
-    );
+    const results: any[] = [];
+
+    schedules.forEach((s) => {
+      const dosis = s.dosage.toLowerCase();
+      let hours = [s.waktu_minum.getHours()];
+      let appliesToThisDay = true; // Assume applies everyday unless constrained
+      
+      // If start date is in the future relative to targetDate, skip
+      const startDate = new Date(s.waktu_minum);
+      startDate.setHours(0, 0, 0, 0);
+      const startOfTarget = new Date(targetDate);
+      startOfTarget.setHours(0, 0, 0, 0);
+      
+      if (startOfTarget < startDate) return;
+
+      // Frequency parsing
+      if (dosis.includes("3x sehari") || dosis.includes("3x_every_day")) {
+        hours = [8, 13, 20];
+      } else if (dosis.includes("2x sehari") || dosis.includes("2x_every_day")) {
+        hours = [8, 20];
+      } else if (dosis.includes("1x sehari") || dosis.includes("1x_every_day")) {
+        // Fall back to actual time or 08:00
+        hours = [s.waktu_minum.getHours() || 8];
+      }
+
+      const isSeminggu = dosis.includes("seminggu") || dosis.includes("a_week");
+      if (isSeminggu) {
+        // Example: 3x seminggu -> Sen (1), Rab (3), Jum (5)
+        const d = targetDate.getDay();
+        if (dosis.includes("3x")) {
+          appliesToThisDay = [1, 3, 5].includes(d);
+        } else if (dosis.includes("2x")) {
+          appliesToThisDay = [1, 4].includes(d);
+        } else if (dosis.includes("1x")) {
+          appliesToThisDay = [startDate.getDay()].includes(d);
+        }
+      }
+
+      if (appliesToThisDay && hours.includes(targetHour)) {
+        results.push({
+          ...s,
+          unique_id: `${s.id}-${targetDate.getTime()}-${targetHour}`,
+          time: `${String(targetHour).padStart(2, "0")}:00`
+        });
+      }
+    });
+
+    return results;
   };
 
   // Penanganan navigasi
@@ -202,6 +252,58 @@ export default function JadwalObatPage() {
     );
   };
 
+  const handleAddJadwal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formNamaObat || !formWaktuMinum) return;
+    setSubmitting(true);
+
+    try {
+      // Create jadwal_obat
+      const { data: jadwalData, error: jadwalError } = await supabase
+        .from("jadwal_obat")
+        .insert([{
+          pasien_id: user?.id,
+          nama_obat: formNamaObat,
+          jenis_obat: formJenisObat,
+          dosis: formDosis,
+          waktu_minum: new Date(formWaktuMinum).toISOString()
+        }])
+        .select()
+        .single();
+
+      if (jadwalError) throw jadwalError;
+
+      // Create reminder if date is selected
+      if (formWaktuKirimReminder && jadwalData) {
+        const { error: reminderError } = await supabase
+          .from("reminder")
+          .insert([{
+            jadwal_id: jadwalData.jadwal_id,
+            waktu_kirim: new Date(formWaktuKirimReminder).toISOString(),
+            status: false
+          }]);
+        
+        if (reminderError) throw reminderError;
+      }
+
+      // Reset form
+      setShowForm(false);
+      setFormNamaObat("");
+      setFormJenisObat("");
+      setFormDosis("");
+      setFormWaktuMinum("");
+      setFormWaktuKirimReminder("");
+      
+      // Refresh
+      fetchSchedules();
+    } catch (err: any) {
+      console.error(err);
+      alert("Gagal menambahkan jadwal obat: " + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-50">
@@ -228,7 +330,15 @@ export default function JadwalObatPage() {
       <div className="bg-white border-b border-gray-200 p-6 shadow-sm sticky top-0 z-10">
         <div className="max-w-full flex justify-between items-center">
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">Jadwal Minum Obat</h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-bold text-gray-900">Jadwal Minum Obat</h1>
+              <button
+                onClick={() => setShowForm(true)}
+                className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition text-sm"
+              >
+                <Plus size={16} /> Tambah Jadwal
+              </button>
+            </div>
             
             {/* Date Picker Trigger */}
             <div className="relative mt-3">
@@ -345,6 +455,95 @@ export default function JadwalObatPage() {
         </div>
       </div>
 
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold text-gray-900">Tambah Jadwal Obat</h2>
+              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleAddJadwal} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Obat *</label>
+                <input
+                  required
+                  type="text"
+                  list="obat-list"
+                  value={formNamaObat}
+                  onChange={(e) => setFormNamaObat(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  placeholder="e.g. Paracetamol"
+                  autoComplete="off"
+                />
+                <datalist id="obat-list">
+                  {obatCatalog.map((obat, idx) => (
+                    <option key={idx} value={obat.nama_obat} />
+                  ))}
+                </datalist>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Obat</label>
+                <input
+                  type="text"
+                  value={formJenisObat}
+                  onChange={(e) => setFormJenisObat(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  placeholder="e.g. Tablet, Sirup"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Dosis</label>
+                <input
+                  type="text"
+                  value={formDosis}
+                  onChange={(e) => setFormDosis(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  placeholder="e.g. 1 Tablet"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Waktu Minum Saat Ini *</label>
+                <input
+                  required
+                  type="datetime-local"
+                  value={formWaktuMinum}
+                  onChange={(e) => setFormWaktuMinum(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Jadwalkan Pengingat Selanjutnya (Tanggal & Waktu)</label>
+                <input
+                  type="datetime-local"
+                  value={formWaktuKirimReminder}
+                  onChange={(e) => setFormWaktuKirimReminder(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Isi jika Anda ingin mendapatkan notifikasi pengingat untuk jadwal berikutnya</p>
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+                >
+                  {submitting ? "Menyimpan..." : "Simpan Jadwal"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-full">
@@ -451,7 +650,7 @@ export default function JadwalObatPage() {
 
                                 return (
                                   <div
-                                    key={schedule.id}
+                                    key={schedule.unique_id}
                                     className={`${bg} border-l-4 ${border} rounded-lg p-3 shadow-sm hover:shadow-md transition cursor-pointer`}
                                   >
                                     <p className="text-xs font-bold text-gray-900 line-clamp-2">

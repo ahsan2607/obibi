@@ -35,9 +35,9 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
     }
   }, [user]);
 
-  const handleLogout = () => {
-    logout();
-    router.push("/");
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
   };
 
   const handleNewChat = async () => {
