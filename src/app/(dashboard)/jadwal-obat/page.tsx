@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
-import { ChevronLeft, ChevronRight, Loader, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader, AlertCircle, Bell, Pill, TrendingUp, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 
 // Types
@@ -32,18 +32,8 @@ export default function JadwalObatPage() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 5, 16)); // Start from a Monday
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-  const [miniCalendarMonth, setMiniCalendarMonth] = useState(new Date(2025, 5)); // Start from June 2025
-
-  // Slot waktu dari 00:00 hingga 23:00 (24 jam)
-  const timeSlots = Array.from({ length: 24 }, (_, i) => {
-    const hour = i;
-    return `${String(hour).padStart(2, "0")}:00`;
-  });
-
-  // Hari dalam seminggu (Senin hingga Minggu)
-  const daysOfWeek = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [activeTab, setActiveTab] = useState<"kalender" | "semua" | "mendatang">("kalender");
 
   // Fetch schedules from Supabase
   useEffect(() => {
@@ -75,7 +65,7 @@ export default function JadwalObatPage() {
         const year = waktuMinum.getFullYear();
         const month = String(waktuMinum.getMonth() + 1).padStart(2, "0");
         const day = String(waktuMinum.getDate()).padStart(2, "0");
-        const date = `${year}-${month}-${day}`;
+        const date = `${day}-${month}-${year}`;
 
         return {
           id: String(item.jadwal_id),
@@ -96,51 +86,7 @@ export default function JadwalObatPage() {
     }
   };
 
-  // Dapatkan minggu mulai dari Senin
-  const getWeekDates = (date: Date): Date[] => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Sesuaikan ketika hari adalah Minggu
-    const monday = new Date(d.setDate(diff));
-
-    const week: Date[] = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(monday);
-      date.setDate(date.getDate() + i);
-      week.push(date);
-    }
-    return week;
-  };
-
-  const weekDates = getWeekDates(currentDate);
-
-  // Dapatkan jadwal untuk hari dan waktu tertentu
-  const getSchedulesForDayTime = (dayIndex: number, timeSlot: string) => {
-    const date = weekDates[dayIndex];
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const dateStr = `${year}-${month}-${day}`;
-    
-    return schedules.filter(
-      (s) => s.date === dateStr && s.time.startsWith(timeSlot.split(":")[0])
-    );
-  };
-
-  // Penanganan navigasi
-  const handlePreviousWeek = () => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() - 7);
-    setCurrentDate(newDate);
-  };
-
-  const handleNextWeek = () => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() + 7);
-    setCurrentDate(newDate);
-  };
-
-  // Helper functions untuk mini calendar
+  // Calendar helpers
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   };
@@ -149,56 +95,56 @@ export default function JadwalObatPage() {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
   };
 
-  const miniCalendarDays = Array.from(
-    { length: getDaysInMonth(miniCalendarMonth) },
-    (_, i) => i + 1
-  );
-  const firstDay = getFirstDayOfMonth(miniCalendarMonth);
+  const getCurrentMonthDays = () => {
+    const today = new Date();
+    return Array.from({ length: getDaysInMonth(today) }, (_, i) => i + 1);
+  };
+
+  const getCurrentFirstDay = () => {
+    const today = new Date();
+    return getFirstDayOfMonth(today);
+  };
+
+  // Get schedules for selected date
+  const getSchedulesForSelectedDate = () => {
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+    const day = String(currentDate.getDate()).padStart(2, "0");
+    const dateStr = `${day}-${month}-${year}`;
+
+    return schedules.filter((s) => s.date === dateStr).sort((a, b) => a.time.localeCompare(b.time));
+  };
+
+  // Calculate stats
+  const stats = {
+    active: schedules.length,
+    today: getSchedulesForSelectedDate().length,
+    compliance: 0,
+    upcoming: schedules.filter((s) => s.date >= new Date().toISOString().split("T")[0]).length,
+  };
+
+  // Calendar days
+  const calendarDays = getCurrentMonthDays();
+  const firstDay = getCurrentFirstDay();
   const emptyDays = Array.from({ length: firstDay }, (_, i) => i);
 
   const handleDateSelect = (day: number) => {
-    const selectedDate = new Date(
-      miniCalendarMonth.getFullYear(),
-      miniCalendarMonth.getMonth(),
-      day
-    );
-    setCurrentDate(selectedDate);
-    setIsDatePickerOpen(false);
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), day));
   };
 
   const handlePreviousMonth = () => {
-    const newMonth = new Date(miniCalendarMonth);
-    newMonth.setMonth(newMonth.getMonth() - 1);
-    setMiniCalendarMonth(newMonth);
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
   };
 
   const handleNextMonth = () => {
-    const newMonth = new Date(miniCalendarMonth);
-    newMonth.setMonth(newMonth.getMonth() + 1);
-    setMiniCalendarMonth(newMonth);
-  };
-
-  // Check if a day is in the current week
-  const isInCurrentWeek = (day: number) => {
-    const testDate = new Date(
-      miniCalendarMonth.getFullYear(),
-      miniCalendarMonth.getMonth(),
-      day
-    );
-    const dayOfWeek = testDate.getDay();
-    const diff = testDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    const weekStart = new Date(testDate.getFullYear(), testDate.getMonth(), diff);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-
-    return currentDate >= weekStart && currentDate <= weekEnd;
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
   };
 
   const isSelectedDay = (day: number) => {
     return (
       day === currentDate.getDate() &&
-      miniCalendarMonth.getMonth() === currentDate.getMonth() &&
-      miniCalendarMonth.getFullYear() === currentDate.getFullYear()
+      currentDate.getMonth() === new Date().getMonth() &&
+      currentDate.getFullYear() === new Date().getFullYear()
     );
   };
 
@@ -210,282 +156,345 @@ export default function JadwalObatPage() {
     );
   }
 
-  const weekStartLabel = weekDates[0].toLocaleDateString("id-ID", {
+  const selectedDateFormatted = currentDate.toLocaleDateString("id-ID", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
     day: "numeric",
+  });
+
+  const currentMonthFormatted = currentDate.toLocaleDateString("id-ID", {
     month: "long",
     year: "numeric",
   });
 
-  const weekEndLabel = weekDates[6].toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const selectedSchedules = getSchedulesForSelectedDate();
 
   return (
     <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-6 shadow-sm sticky top-0 z-10">
-        <div className="max-w-full flex justify-between items-center">
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">Jadwal Minum Obat</h1>
-            
-            {/* Date Picker Trigger */}
-            <div className="relative mt-3">
-              <button
-                onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-teal-50 border border-teal-200 text-teal-700 rounded-lg hover:bg-teal-100 transition font-medium"
-              >
-                <span>{weekStartLabel}</span>
-                <span className="text-gray-500">-</span>
-                <span>{weekEndLabel}</span>
-                <ChevronRight
-                  size={16}
-                  className={`transition-transform ${
-                    isDatePickerOpen ? "rotate-90" : ""
-                  }`}
-                />
-              </button>
-
-              {/* Date Picker Dropdown */}
-              {isDatePickerOpen && (
-                <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-lg p-4 z-50 w-80">
-                  {/* Mini Calendar Header */}
-                  <div className="flex justify-between items-center mb-4">
-                    <button
-                      onClick={handlePreviousMonth}
-                      className="p-1 hover:bg-gray-100 rounded transition"
-                    >
-                      <ChevronLeft size={18} className="text-gray-600" />
-                    </button>
-                    <h3 className="text-sm font-semibold text-gray-900">
-                      {miniCalendarMonth.toLocaleDateString("id-ID", {
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </h3>
-                    <button
-                      onClick={handleNextMonth}
-                      className="p-1 hover:bg-gray-100 rounded transition"
-                    >
-                      <ChevronRight size={18} className="text-gray-600" />
-                    </button>
-                  </div>
-
-                  {/* Day Headers */}
-                  <div className="grid grid-cols-7 gap-2 mb-2">
-                    {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map(
-                      (day) => (
-                        <div
-                          key={day}
-                          className="text-center text-xs font-semibold text-gray-500 py-2"
-                        >
-                          {day}
-                        </div>
-                      )
-                    )}
-                  </div>
-
-                  {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-2">
-                    {emptyDays.map((i) => (
-                      <div key={`empty-${i}`} />
-                    ))}
-                    {miniCalendarDays.map((day) => {
-                      const isSelected = isSelectedDay(day);
-                      const isInWeek = isInCurrentWeek(day);
-
-                      return (
-                        <button
-                          key={day}
-                          onClick={() => handleDateSelect(day)}
-                          className={`py-2 text-sm font-medium rounded-lg transition ${
-                            isSelected
-                              ? "bg-teal-500 text-white"
-                              : isInWeek
-                                ? "bg-teal-50 text-teal-700"
-                                : "text-gray-700 hover:bg-gray-100"
-                          }`}
-                        >
-                          {day}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Close button */}
-                  <button
-                    onClick={() => setIsDatePickerOpen(false)}
-                    className="w-full mt-4 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition"
-                  >
-                    Tutup
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Navigation Buttons */}
-          <div className="flex items-center gap-4 ml-6">
-            <button
-              onClick={handlePreviousWeek}
-              className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition shadow-sm"
-            >
-              <ChevronLeft size={18} />
-              Minggu Sebelumnya
-            </button>
-            <button
-              onClick={handleNextWeek}
-              className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition shadow-sm"
-            >
-              Minggu Berikutnya
-              <ChevronRight size={18} />
-            </button>
+      <div className="bg-white border-b border-gray-200 p-4 md:p-6 shadow-sm sticky top-0 z-10">
+        <div className="max-w-full">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Pengingat Obat</h1>
+          <div className="flex items-center gap-2 text-teal-700 bg-teal-50 px-3 py-2 rounded-lg mt-3 w-fit">
+            <Bell size={16} />
+            <p className="text-sm font-medium">Atur pengingat untuk membantu Anda minum obat tepat waktu. Jangan sampai terlewat lagi!</p>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-full">
-          {/* Status Memuat */}
-          {loading && (
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-12 flex flex-col items-center justify-center">
-              <Loader
-                size={32}
-                className="text-teal-600 animate-spin mb-4"
-              />
-              <p className="text-gray-500">Memuat jadwal...</p>
-            </div>
-          )}
-
-          {/* Status Error */}
-          {error && (
-            <div className="bg-white rounded-3xl shadow-sm border border-red-200 p-6 flex items-start gap-3">
-              <AlertCircle
-                size={20}
-                className="text-red-600 flex-shrink-0 mt-1"
-              />
+      {/* Stats Cards */}
+      <div className="px-4 md:px-6 py-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          {/* Pengingat Aktif */}
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-900">{error}</p>
-                <button
-                  onClick={fetchSchedules}
-                  className="text-sm text-red-600 hover:text-red-700 mt-2 underline"
-                >
-                  Coba lagi
-                </button>
+                <p className="text-gray-600 text-sm font-medium">Pengingat Aktif</p>
+                <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">{stats.active}</p>
+              </div>
+              <div className="bg-blue-100 p-3 rounded-full">
+                <Bell size={24} className="text-blue-600" />
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Grid Kalender Mingguan */}
-          {!loading && !error && (
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="overflow-x-auto">
-                <div className="inline-block min-w-full">
-                  {/* Header dengan nama hari */}
-                  <div
-                    className="grid gap-px bg-gray-100"
-                    style={{
-                      gridTemplateColumns: "100px repeat(7, 1fr)",
-                    }}
+          {/* Dosis Hari Ini */}
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Dosis Hari Ini</p>
+                <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">{stats.today}</p>
+              </div>
+              <div className="bg-green-100 p-3 rounded-full">
+                <Pill size={24} className="text-green-600" />
+              </div>
+            </div>
+          </div>
+
+          {/* Tingkat Kepatuhan */}
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Tingkat Kepatuhan</p>
+                <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">{stats.compliance}%</p>
+              </div>
+              <div className="bg-purple-100 p-3 rounded-full">
+                <TrendingUp size={24} className="text-purple-600" />
+              </div>
+            </div>
+          </div>
+
+          {/* Mendatang */}
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Mendatang</p>
+                <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">{stats.upcoming}</p>
+              </div>
+              <div className="bg-orange-100 p-3 rounded-full">
+                <Clock size={24} className="text-orange-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="px-4 md:px-6 border-b border-gray-200 bg-white">
+        <div className="flex gap-0">
+          <button
+            onClick={() => setActiveTab("kalender")}
+            className={`px-4 md:px-6 py-3 font-medium text-sm md:text-base border-b-2 transition ${
+              activeTab === "kalender"
+                ? "border-teal-500 text-teal-600"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Tampilan Kalender
+          </button>
+          <button
+            onClick={() => setActiveTab("semua")}
+            className={`px-4 md:px-6 py-3 font-medium text-sm md:text-base border-b-2 transition ${
+              activeTab === "semua"
+                ? "border-teal-500 text-teal-600"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Semua Pengingat
+          </button>
+          <button
+            onClick={() => setActiveTab("mendatang")}
+            className={`px-4 md:px-6 py-3 font-medium text-sm md:text-base border-b-2 transition ${
+              activeTab === "mendatang"
+                ? "border-teal-500 text-teal-600"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Mendatang
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto px-4 md:px-6 py-6">
+        {loading && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-12 flex flex-col items-center justify-center">
+            <Loader size={32} className="text-teal-600 animate-spin mb-4" />
+            <p className="text-gray-500 text-center">Memuat jadwal...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-white rounded-2xl shadow-sm border border-red-200 p-4 md:p-6 flex items-start gap-3">
+            <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-1" />
+            <div>
+              <p className="font-medium text-red-900">{error}</p>
+              <button
+                onClick={fetchSchedules}
+                className="text-sm text-red-600 hover:text-red-700 mt-2 underline"
+              >
+                Coba lagi
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && activeTab === "kalender" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Calendar Picker */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Pilih Tanggal</h3>
+                <p className="text-sm text-gray-600 mb-4">Pilih tanggal untuk melihat jadwal pengobatan</p>
+
+                {/* Calendar Header */}
+                <div className="flex justify-between items-center mb-4">
+                  <button
+                    onClick={handlePreviousMonth}
+                    className="p-1 hover:bg-gray-100 rounded transition"
                   >
-                    {/* Sudut label waktu */}
-                    <div className="bg-gray-100 p-4" />
+                    <ChevronLeft size={18} className="text-gray-600" />
+                  </button>
+                  <h4 className="text-sm font-semibold text-gray-900">{currentMonthFormatted}</h4>
+                  <button
+                    onClick={handleNextMonth}
+                    className="p-1 hover:bg-gray-100 rounded transition"
+                  >
+                    <ChevronRight size={18} className="text-gray-600" />
+                  </button>
+                </div>
 
-                    {/* Hari dalam seminggu */}
-                    {daysOfWeek.map((day, idx) => (
-                      <div
+                {/* Day Headers */}
+                <div className="grid grid-cols-7 gap-2 mb-2">
+                  {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map((day) => (
+                    <div key={day} className="text-center text-xs font-semibold text-gray-500 py-2">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-2">
+                  {emptyDays.map((i) => (
+                    <div key={`empty-${i}`} />
+                  ))}
+                  {calendarDays.map((day) => {
+                    const isSelected = isSelectedDay(day);
+                    const hasSchedules = schedules.some((s) => {
+                      const schedDate = new Date(s.date);
+                      return (
+                        schedDate.getDate() === day &&
+                        schedDate.getMonth() === currentDate.getMonth() &&
+                        schedDate.getFullYear() === currentDate.getFullYear()
+                      );
+                    });
+
+                    return (
+                      <button
                         key={day}
-                        className="bg-white p-4 border-b border-gray-200 text-center"
+                        onClick={() => handleDateSelect(day)}
+                        className={`py-2 text-sm font-medium rounded-lg transition touch-manipulation relative ${
+                          isSelected
+                            ? "bg-teal-500 text-white"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
                       >
-                        <p className="text-sm font-semibold text-gray-900">
-                          {day}
-                        </p>
-                        <p className="text-lg font-bold text-teal-600 mt-1">
-                          {weekDates[idx].getDate()}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {weekDates[idx].toLocaleDateString("id-ID", {
-                            month: "short",
-                          })}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Slot waktu dan kartu obat */}
-                  <div
-                    className="grid gap-px bg-gray-100"
-                    style={{
-                      gridTemplateColumns: "100px repeat(7, 1fr)",
-                    }}
-                  >
-                    {/* Baris grid untuk setiap slot waktu */}
-                    {timeSlots.map((timeSlot) => (
-                      <div key={timeSlot} className="contents">
-                        {/* Label waktu */}
-                        <div className="bg-white p-4 border-r border-gray-200 text-right">
-                          <p className="text-xs font-semibold text-gray-600">
-                            {timeSlot}
-                          </p>
-                        </div>
-
-                        {/* Sel hari */}
-                        {Array.from({ length: 7 }).map((_, dayIdx) => {
-                          const daySchedules = getSchedulesForDayTime(
-                            dayIdx,
-                            timeSlot
-                          );
-
-                          return (
-                            <div
-                              key={`${timeSlot}-day${dayIdx}`}
-                              className="bg-white p-2 border-r border-b border-gray-200 min-h-24 flex flex-col gap-2"
-                            >
-                              {daySchedules.map((schedule, scheduleIdx) => {
-                                const colorIndex =
-                                  scheduleIdx % colorPalette.length;
-                                const { bg, border } =
-                                  colorPalette[colorIndex];
-
-                                return (
-                                  <div
-                                    key={schedule.id}
-                                    className={`${bg} border-l-4 ${border} rounded-lg p-3 shadow-sm hover:shadow-md transition cursor-pointer`}
-                                  >
-                                    <p className="text-xs font-bold text-gray-900 line-clamp-2">
-                                      {schedule.medicine_name}
-                                    </p>
-                                    <p className="text-xs text-gray-600 mt-1">
-                                      {schedule.dosage}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-1.5">
-                                      {schedule.time}
-                                    </p>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
+                        {day}
+                        {hasSchedules && !isSelected && (
+                          <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-teal-500 rounded-full" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+            </div>
 
-              {/* Status kosong */}
-              {!loading && schedules.length === 0 && (
-                <div className="text-center py-12 px-6">
-                  <p className="text-gray-500 text-lg">
-                    Tidak ada jadwal obat untuk minggu ini.
-                  </p>
+            {/* Schedule for Selected Date */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Jadwal {selectedDateFormatted}</h3>
+                <p className="text-sm text-gray-600 mb-6">Obat yang dijadwalkan untuk hari ini</p>
+
+                <div className="space-y-4">
+                  {selectedSchedules.length > 0 ? (
+                    selectedSchedules.map((schedule, idx) => {
+                      const colorIndex = idx % colorPalette.length;
+                      const { bg, border } = colorPalette[colorIndex];
+
+                      return (
+                        <div
+                          key={schedule.id}
+                          className={`${bg} border-l-4 ${border} rounded-lg p-4 shadow-sm hover:shadow-md transition`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="text-base font-bold text-gray-900">{schedule.medicine_name}</p>
+                              <p className="text-sm text-gray-600 mt-1">{schedule.dosage}</p>
+                              <div className="flex items-center gap-2 mt-3">
+                                <Clock size={14} className="text-gray-500" />
+                                <p className="text-sm text-gray-600">pukul {schedule.time}</p>
+                              </div>
+                            </div>
+                            <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                              Aktif
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-3">Konsumsi bersama makanan</p>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">Tidak ada jadwal untuk hari ini</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && activeTab === "semua" && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Semua Pengingat Obat</h3>
+            <div className="space-y-4">
+              {schedules.length > 0 ? (
+                schedules.map((schedule, idx) => {
+                  const colorIndex = idx % colorPalette.length;
+                  const { bg, border } = colorPalette[colorIndex];
+
+                  return (
+                    <div
+                      key={schedule.id}
+                      className={`${bg} border-l-4 ${border} rounded-lg p-4 shadow-sm hover:shadow-md transition`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="text-base font-bold text-gray-900">{schedule.medicine_name}</p>
+                          <p className="text-sm text-gray-600 mt-1">{schedule.dosage}</p>
+                          <div className="flex gap-4 mt-3 text-sm text-gray-600">
+                            <div className="flex items-center gap-2">
+                              <Clock size={14} />
+                              {schedule.time}
+                            </div>
+                            <div>Tanggal: {schedule.date}</div>
+                          </div>
+                        </div>
+                        <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                          Aktif
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">Tidak ada jadwal obat</p>
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {!loading && !error && activeTab === "mendatang" && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Jadwal Mendatang</h3>
+            <div className="space-y-4">
+              {schedules
+                .filter((s) => s.date >= new Date().toISOString().split("T")[0])
+                .map((schedule, idx) => {
+                  const colorIndex = idx % colorPalette.length;
+                  const { bg, border } = colorPalette[colorIndex];
+
+                  return (
+                    <div
+                      key={schedule.id}
+                      className={`${bg} border-l-4 ${border} rounded-lg p-4 shadow-sm hover:shadow-md transition`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="text-base font-bold text-gray-900">{schedule.medicine_name}</p>
+                          <p className="text-sm text-gray-600 mt-1">{schedule.dosage}</p>
+                          <div className="flex gap-4 mt-3 text-sm text-gray-600">
+                            <div className="flex items-center gap-2">
+                              <Clock size={14} />
+                              {schedule.time}
+                            </div>
+                            <div>Tanggal: {schedule.date}</div>
+                          </div>
+                        </div>
+                        <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                          Aktif
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
