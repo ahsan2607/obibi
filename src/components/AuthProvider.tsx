@@ -2,24 +2,24 @@
 
 import { createContext, useCallback, useContext, useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Pasien } from "@/lib/types";
+import { Patient } from "@/lib/types";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 
 type AuthContextType = {
-  user: Pasien | null;
+  user: Patient | null;
   loading: boolean;
-  login: (userData: Pasien) => void; // kept for backward compatibility if needed
+  login: (userData: Patient) => void; // kept for backward compatibility if needed
   logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<Pasien | null>(null);
+  const [user, setUser] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const initRef = useRef(false);
 
-  // Helper function to fetch full Pasien data from your table
+  // Helper function to fetch full Patient data from your table
   const loadPatientData = useCallback(
     async (supabaseUser: SupabaseUser) => {
       try {
@@ -30,15 +30,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .single();
 
         if (error) {
-          console.error("Error fetching pasien data:", error);
+          console.error("Error fetching patient data:", error);
           // Update fallback to use 'name' instead of 'nama'
           setUser({
             id: supabaseUser.id,
             email: supabaseUser.email!,
             name: supabaseUser.user_metadata?.name || supabaseUser.email?.split("@")[0] || "",
-          }); // Use 'any' if the Pasien type hasn't been updated yet
+          }); 
         } else {
-          setUser(patientData); // This object will now have 'name' from the DB
+          setUser(patientData); 
         }
       } catch (err) {
         console.error("Unexpected error loading patient data:", err);
@@ -54,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let authSubscription: any = null;
 
     const initializeAuth = async () => {
+      console.log('[AuthProvider] Initializing auth with supabase client:', !!supabase);
       // Prevent strict mode rapid re-firing of getSession
       if (initRef.current) return;
       initRef.current = true;
@@ -98,9 +99,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [loadPatientData]);
 
-  const login = (userData: Pasien) => {
+  const login = (userData: Patient) => {
     setUser(userData);
   };
+
 
   const logout = async () => {
     await supabase.auth.signOut();
