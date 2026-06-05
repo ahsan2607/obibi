@@ -51,8 +51,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Listen to Supabase auth state changes
   useEffect(() => {
     let mounted = true;
+    let authSubscription: any = null;
 
-    const getInitialSession = async () => {
+    const initializeAuth = async () => {
       // Prevent strict mode rapid re-firing of getSession
       if (initRef.current) return;
       initRef.current = true;
@@ -71,28 +72,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } finally {
         if (mounted) setLoading(false);
       }
+
+      // ONLY subscribe after getSession completes to avoid concurrent Storage Locks!
+      if (!mounted) return;
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!mounted) return;
+        if (event === "INITIAL_SESSION") return; // We already fetched it
+
+        if (session?.user) {
+          await loadPatientData(session.user);
+        } else {
+          setUser(null);
+        }
+      });
+      authSubscription = subscription;
     };
 
-    getInitialSession();
-
-    // Subscribe to auth changes (login, logout, token refresh, etc.)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // console.log("Auth event:", event); // Helpful for debugging
-      if (!mounted) return;
-
-      if (session?.user) {
-        await loadPatientData(session.user);
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
+    initializeAuth();
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
     };
   }, [loadPatientData]);
 
