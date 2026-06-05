@@ -129,13 +129,13 @@ export default function ChatSessionPage({ params }: { params: Promise<{ id: stri
     }
   };
 
-  if (loading) return <div className="flex-1 flex items-center justify-center">Loading chat...</div>;
+  if (loading) return <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">Loading chat...</div>;
 
   return (
     <div className="flex flex-col h-full bg-white relative">
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 sm:space-y-6">
         {chatLog.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-gray-400">
+          <div className="h-full flex items-center justify-center text-gray-400 text-sm">
             Start a conversation!
           </div>
         ) : (
@@ -145,34 +145,34 @@ export default function ChatSessionPage({ params }: { params: Promise<{ id: stri
             return (
               <div
                 key={idx}
-                className={`flex gap-4 ${isUser ? "flex-row-reverse" : "flex-row"}`}
+                className={`flex gap-2 sm:gap-4 ${isUser ? "flex-row-reverse" : "flex-row"}`}
               >
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 ${
                     isUser ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"
                   }`}
                 >
-                  {isUser ? <UserIcon size={18} /> : <Bot size={18} />}
+                  {isUser ? <UserIcon size={16} className="sm:w-4.5 sm:h-4.5" /> : <Bot size={16} className="sm:w-4.5 sm:h-4.5" />}
                 </div>
                 <div
-                  className={`max-w-[75%] px-4 py-3 rounded-2xl ${
+                  className={`max-w-[85%] sm:max-w-[75%] px-3 sm:px-4 py-2 sm:py-3 rounded-2xl text-xs sm:text-sm ${
                     isUser
                       ? "bg-blue-600 text-white rounded-tr-none"
                       : "bg-gray-100 text-gray-800 rounded-tl-none"
                   }`}
                 >
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed">{text}</div>
+                  <div className="whitespace-pre-wrap leading-relaxed break-words">{text}</div>
                 </div>
               </div>
             );
           })
         )}
         {sending && (
-          <div className="flex gap-4 flex-row">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600">
-              <Bot size={18} />
+          <div className="flex gap-2 sm:gap-4 flex-row">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600">
+              <Bot size={16} className="sm:w-4.5 sm:h-4.5" />
             </div>
-            <div className="px-4 py-3 rounded-2xl bg-gray-100 text-gray-800 rounded-tl-none flex items-center gap-1">
+            <div className="px-3 sm:px-4 py-2 sm:py-3 rounded-2xl bg-gray-100 text-gray-800 rounded-tl-none flex items-center gap-1">
                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></span>
                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></span>
@@ -182,25 +182,25 @@ export default function ChatSessionPage({ params }: { params: Promise<{ id: stri
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="border-t border-gray-200 p-4 bg-white">
+      <div className="border-t border-gray-200 p-3 sm:p-4 bg-white">
         {selectedImage && (
-          <div className="max-w-4xl mx-auto mb-2 relative inline-block">
-            <img src={selectedImage} alt="Preview" className="h-20 rounded-lg object-cover border border-gray-200" />
+          <div className="mb-2 relative inline-block">
+            <img src={selectedImage} alt="Preview" className="h-16 sm:h-20 rounded-lg object-cover border border-gray-200" />
             <button
               onClick={() => setSelectedImage(null)}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition min-h-[32px] min-w-[32px] flex items-center justify-center"
             >
               <X size={14} />
             </button>
           </div>
         )}
-        <form onSubmit={handleSend} className="max-w-4xl mx-auto flex gap-2 items-center">
+        <form onSubmit={handleSend} className="flex gap-2 sm:gap-3 items-center">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="text-gray-500 hover:text-blue-600 p-2"
+            className="text-gray-500 hover:text-blue-600 p-2 transition rounded-lg hover:bg-gray-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
-            <Paperclip size={24} />
+            <Paperclip size={20} />
           </button>
           <input
             type="file"
@@ -213,16 +213,16 @@ export default function ChatSessionPage({ params }: { params: Promise<{ id: stri
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ketik pertanyaan kesehatan Anda..."
-            className="flex-1 border border-gray-300 rounded-full px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm text-gray-800"
+            placeholder="Ketik pertanyaan..."
+            className="flex-1 border border-gray-300 rounded-full px-3 sm:px-4 py-2.5 sm:py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-xs sm:text-sm text-gray-800 placeholder-gray-500"
             disabled={sending}
           />
           <button
             type="submit"
             disabled={sending || (!input.trim() && !selectedImage)}
-            className="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="bg-blue-600 text-white rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition min-h-[44px] min-w-[44px]"
           >
-            <Send size={20} />
+            <Send size={18} className="sm:w-5 sm:h-5" />
           </button>
         </form>
       </div>

@@ -159,27 +159,28 @@ export default function LaporanKepatuhanPage() {
   if (!user) return null;
 
   return (
-    <div className="flex-1 p-6 lg:p-8 overflow-y-auto bg-gray-50/50">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto bg-gray-50/50">
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
         
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Laporan Kepatuhan</h1>
-          <p className="text-gray-500 mt-2">Pantau tingkat kepatuhan minum obat Anda setiap hari.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Laporan Kepatuhan</h1>
+          <p className="text-gray-500 mt-2 text-sm sm:text-base">Pantau tingkat kepatuhan minum obat Anda setiap hari.</p>
         </div>
 
         {/* Chart Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:p-8">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-500" />
-              Analisis 7 hari terakhir patuh minum obat
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
+            <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 flex items-center gap-2 whitespace-nowrap">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0" />
+              <span className="hidden sm:inline">Analisis 7 hari terakhir patuh minum obat</span>
+              <span className="sm:hidden">Analisis 7 Hari</span>
             </h2>
           </div>
           
-          <div className="relative h-64 w-full mt-4">
+          <div className="relative h-64 w-full mt-4 min-w-[300px]">
             {/* Y-axis labels */}
-            <div className="absolute left-0 top-0 bottom-8 w-12 flex flex-col justify-between text-xs text-gray-400 text-right pr-4">
+            <div className="absolute left-0 top-0 bottom-8 w-10 sm:w-12 flex flex-col justify-between text-xs text-gray-400 text-right pr-2 sm:pr-4">
               <span>100%</span>
               <span>75%</span>
               <span>50%</span>
@@ -188,7 +189,7 @@ export default function LaporanKepatuhanPage() {
             </div>
             
             {/* Chart Area */}
-            <div className="absolute left-12 right-0 top-0 bottom-8 flex justify-between items-end gap-2 border-l border-b border-gray-200 pb-1">
+            <div className="absolute left-10 sm:left-12 right-0 top-0 bottom-8 flex justify-between items-end gap-1 sm:gap-2 border-l border-b border-gray-200 pb-1">
               {/* Horizontal grid lines */}
               <div className="absolute left-0 right-0 bottom-0 top-0 flex flex-col justify-between pointer-events-none">
                 {[...Array(5)].map((_, i) => (
@@ -198,18 +199,18 @@ export default function LaporanKepatuhanPage() {
 
               {/* Bars */}
               {chartData.map((item, index) => (
-                <div key={index} className="relative flex flex-col items-center w-full group z-10 h-full justify-end">
+                <div key={index} className="relative flex flex-col items-center flex-1 group z-10 h-full justify-end">
                   {/* Tooltip on Hover */}
-                  <div className="absolute -top-10 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-20">
+                  <div className="absolute -top-8 sm:-top-10 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-20">
                     {item.percent}% Patuh
                   </div>
                   
                   {/* Percentage above bar */}
-                  <span className="text-xs font-medium text-gray-600 mb-2">{item.percent}%</span>
+                  <span className="text-xs font-medium text-gray-600 mb-1 sm:mb-2">{item.percent}%</span>
                   
                   {/* Bar */}
                   <div 
-                    className={`w-full max-w-[3rem] rounded-t-md transition-all duration-500 hover:opacity-80
+                    className={`w-full rounded-t-md transition-all duration-500 hover:opacity-80
                       ${item.percent >= 80 ? 'bg-gradient-to-t from-green-500 to-green-400' : 
                         item.percent >= 50 ? 'bg-gradient-to-t from-yellow-500 to-yellow-400' : 
                         'bg-gradient-to-t from-red-500 to-red-400'}`}
@@ -220,9 +221,9 @@ export default function LaporanKepatuhanPage() {
             </div>
             
             {/* X-axis labels */}
-            <div className="absolute left-12 right-0 bottom-0 h-8 flex justify-between items-end pt-2">
+            <div className="absolute left-10 sm:left-12 right-0 bottom-0 h-8 flex justify-between items-end pt-2">
               {chartData.map((item, index) => (
-                <div key={index} className="w-full text-center text-xs text-gray-500 font-medium truncate px-1">
+                <div key={index} className="flex-1 text-center text-xs text-gray-500 font-medium truncate px-0.5 sm:px-1">
                   {item.date}
                 </div>
               ))}
@@ -231,11 +232,12 @@ export default function LaporanKepatuhanPage() {
         </div>
 
         {/* Medications List Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:p-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 lg:p-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-orange-500" />
-              Obat yang harus di minum hari ini:
+            <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 flex items-center gap-2 whitespace-nowrap">
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 flex-shrink-0" />
+              <span className="hidden sm:inline">Obat yang harus di minum hari ini:</span>
+              <span className="sm:hidden">Obat Hari Ini</span>
             </h2>
           </div>
           
@@ -244,18 +246,18 @@ export default function LaporanKepatuhanPage() {
               <Loader className="w-6 h-6 animate-spin text-blue-500" />
             </div>
           ) : todayMedicines.length === 0 ? (
-            <div className="text-center p-8 text-gray-500">Tidak ada jadwal obat untuk hari ini.</div>
+            <div className="text-center p-6 sm:p-8 text-gray-500 text-sm">Tidak ada jadwal obat untuk hari ini.</div>
           ) : (
             <div className="space-y-4">
               {todayMedicines.map((med) => (
                 <div 
                   key={med.id} 
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors gap-4"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors gap-3 sm:gap-4"
                 >
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-800">{med.name}</h3>
-                  <div className="text-sm text-gray-500 mt-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                    <span>{med.dosage}</span>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-800 text-sm sm:text-base">{med.name}</h3>
+                  <div className="text-xs sm:text-sm text-gray-500 mt-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                    <span className="truncate">{med.dosage}</span>
                     <span className="hidden sm:inline text-gray-300">•</span>
                     <span className="text-blue-600 font-medium">{med.time}</span>
                   </div>
@@ -263,20 +265,22 @@ export default function LaporanKepatuhanPage() {
                 
                 <button 
                   onClick={() => med.status !== 'taken' && markAsTaken(med.id)}
-                  className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 shrink-0
+                  className={`flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-lg font-medium text-xs sm:text-sm transition-all duration-200 shrink-0 whitespace-nowrap min-h-[44px]
                     ${med.status === 'taken' 
                       ? 'bg-green-50 text-green-700 border border-green-200 cursor-default' 
                       : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow active:scale-95'}`}
                 >
                   {med.status === 'taken' ? (
                     <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      Sudah diminum
+                      <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                      <span className="hidden sm:inline">Sudah diminum</span>
+                      <span className="sm:hidden">Sudah</span>
                     </>
                   ) : (
                     <>
-                      <Circle className="w-4 h-4" />
-                      Tandai sudah minum
+                      <Circle className="w-4 h-4 flex-shrink-0" />
+                      <span className="hidden sm:inline">Tandai sudah minum</span>
+                      <span className="sm:hidden">Tandai</span>
                     </>
                   )}
                 </button>

@@ -16,13 +16,13 @@ export interface ILocation
 export abstract class ScopeAbstract
 {
   abstract input(file: string): string;
-  abstract configure(key: string, value: any);
+  abstract configure(key: string, value: any): void;
   abstract config<T>(key: string): T;
-  abstract fn(fn: () => any);
-  abstract eval(code: string);
+  abstract fn(fn: () => any): void;
+  abstract eval(code: string): void;
   abstract str(o: any): string;
   abstract get state(): "idle"|"building";
-  workdir: string;
+  workdir?: string;
 }
 
 export interface IResolvable
@@ -41,7 +41,7 @@ export interface INode
 
 export interface ITextNode extends INode
 {
-  getText(filetext: string);
+  getText(filetext: string): string;
 }
 
 export interface IFnNode extends INode
@@ -50,7 +50,7 @@ export interface IFnNode extends INode
   parameters: IParameterListNode;
   name: IFnNameNode;
 
-  getStatementText(filetext: string);
+  getStatementText(filetext: string): string;
 }
 
 export interface IFnNameNode extends INode

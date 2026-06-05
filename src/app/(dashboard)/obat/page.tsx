@@ -88,74 +88,76 @@ export default function ObatPage() {
   if (!user) return null;
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 bg-white text-gray-800">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 bg-white text-gray-800">
       <div className="max-w-5xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Medicine List (Obat)</h1>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Medicine List (Obat)</h1>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition text-sm sm:text-base font-medium w-full sm:w-auto justify-center sm:justify-start min-h-[44px]"
           >
             <Plus size={18} /> Tambah Obat
           </button>
         </div>
 
         {showForm && (
-          <form onSubmit={handleAddObat} className="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nama Obat</label>
-              <input
-                required
-                type="text"
-                value={namaObat}
-                onChange={(e) => setNamaObat(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-                placeholder="e.g. Paracetamol"
-              />
+          <form onSubmit={handleAddObat} className="bg-gray-50 p-4 sm:p-6 rounded-xl border border-gray-200 mb-6 sm:mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Nama Obat</label>
+                <input
+                  required
+                  type="text"
+                  value={namaObat}
+                  onChange={(e) => setNamaObat(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2.5 sm:py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g. Paracetamol"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Keterangan</label>
+                <input
+                  required
+                  type="text"
+                  value={keterangan}
+                  onChange={(e) => setKeterangan(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2.5 sm:py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g. Demam, Sakit Kepala"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Dosis</label>
+                <input
+                  required
+                  type="text"
+                  value={dosis}
+                  onChange={(e) => setDosis(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2.5 sm:py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g. 3x Sehari"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Efek Samping</label>
+                <input
+                  type="text"
+                  value={efekSamping}
+                  onChange={(e) => setEfekSamping(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2.5 sm:py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g. Mengantuk"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
-              <input
-                required
-                type="text"
-                value={keterangan}
-                onChange={(e) => setKeterangan(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-                placeholder="e.g. Demam, Sakit Kepala"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Dosis</label>
-              <input
-                required
-                type="text"
-                value={dosis}
-                onChange={(e) => setDosis(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-                placeholder="e.g. 3x Sehari"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Efek Samping</label>
-              <input
-                type="text"
-                value={efekSamping}
-                onChange={(e) => setEfekSamping(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-                placeholder="e.g. Mengantuk"
-              />
-            </div>
-            <div className="md:col-span-2 flex justify-end gap-2 mt-2">
+            <div className="sm:col-span-2 flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4">
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition"
+                className="px-4 py-2.5 text-gray-600 hover:bg-gray-200 rounded-lg transition text-sm font-medium min-h-[44px]"
               >
                 Batal
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium min-h-[44px]"
               >
                 Simpan
               </button>
@@ -164,25 +166,25 @@ export default function ObatPage() {
         )}
 
         {loading ? (
-          <div className="text-center text-gray-500 py-12">Loading medicines...</div>
+          <div className="text-center text-gray-500 py-12 text-sm sm:text-base">Loading medicines...</div>
         ) : obatList.length === 0 ? (
-          <div className="text-center text-gray-500 py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+          <div className="text-center text-gray-500 py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-sm sm:text-base">
             Belum ada obat yang dicatat.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {obatList.map((obat) => (
-              <div key={obat.obat_id} className="bg-white border border-gray-200 p-5 rounded-xl shadow-sm hover:shadow-md transition relative group">
+              <div key={obat.obat_id} className="bg-white border border-gray-200 p-4 sm:p-5 rounded-xl shadow-sm hover:shadow-md transition relative group">
                 <button
                   onClick={() => handleDelete(obat.obat_id)}
-                  className="absolute top-4 right-4 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
+                  className="absolute top-3 right-3 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition p-1.5 hover:bg-red-50 rounded-lg"
                 >
                   <Trash2 size={18} />
                 </button>
-                <h3 className="font-bold text-lg text-blue-900 mb-1">{obat.nama_obat}</h3>
-                <div className="text-sm text-gray-500 mb-3">{obat.keterangan}</div>
+                <h3 className="font-bold text-base sm:text-lg text-blue-900 mb-1 pr-8">{obat.nama_obat}</h3>
+                <div className="text-xs sm:text-sm text-gray-500 mb-3">{obat.keterangan}</div>
                 
-                <div className="space-y-2 text-sm">
+                <div className="space-y-2 text-xs sm:text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Dosis:</span>
                     <span className="font-medium text-gray-800">{obat.dosis}</span>

@@ -36,11 +36,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar isOpen={isOpen} setIsOpen={setIsOpen} toggleSidebar={toggleSidebar} />
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Mobile Hamburger Button */}
-        <div className="lg:hidden sticky top-0 z-10 flex p-4 shadow-sm bg-white border-b border-gray-200 items-center gap-4">
-          <button onClick={toggleSidebar} className="p-2 hover:bg-gray-100 rounded-lg">
+        <div className="lg:hidden sticky top-0 z-10 flex p-3 sm:p-4 shadow-sm bg-white border-b border-gray-200 items-center gap-4">
+          <button onClick={toggleSidebar} className="p-2 hover:bg-gray-100 rounded-lg transition-colors active:bg-gray-200">
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
-          <span className="font-bold text-gray-800">Obibi</span>
+          <span className="font-bold text-sm sm:text-base text-gray-800">Obibi</span>
         </div>
         {children}
       </main>

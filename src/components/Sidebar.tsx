@@ -86,15 +86,15 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
         `}
       >
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="p-3 sm:p-4 border-b border-gray-200 flex items-center justify-between">
           <div className={`flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
-            <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-xl">H</span>
+            <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-bold text-lg sm:text-xl">H</span>
             </div>
             {!isCollapsed && (
-              <div>
-                <h2 className="font-semibold text-lg text-blue-600">Obibi</h2>
-                <p className="text-sm text-gray-500 truncate">Hi, {user.name}</p>
+              <div className="min-w-0">
+                <h2 className="font-semibold text-base sm:text-lg text-blue-600">Obibi</h2>
+                <p className="text-xs sm:text-sm text-gray-500 truncate">Hi, {user.name}</p>
               </div>
             )}
           </div>
@@ -102,25 +102,25 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
           {/* Collapse Button - Desktop only */}
           <button
             onClick={toggleCollapse}
-            className="hidden lg:block p-1.5 hover:bg-gray-200 rounded-lg transition"
+            className="hidden lg:flex p-1.5 hover:bg-gray-200 rounded-lg transition items-center justify-center min-h-[44px] min-w-[44px]"
           >
             {isCollapsed ? "→" : "←"}
           </button>
         </div>
 
         {/* New Chat Button */}
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           <button
             onClick={handleNewChat}
-            className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded-xl hover:bg-blue-700 transition font-medium"
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 sm:py-3 px-4 rounded-xl hover:bg-blue-700 transition font-medium text-sm sm:text-base min-h-[44px]"
           >
-            <Plus size={20} />
+            <Plus size={18} className="sm:w-5 sm:h-5" />
             {!isCollapsed && <span>New Chat</span>}
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-2 sm:px-3 py-2 space-y-1">
           {[
             { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
             { href: "/obat", icon: Pill, label: "Obat" },
@@ -132,10 +132,10 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
               key={href}
               href={href}
               onClick={() => setIsOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition ${isCollapsed ? "justify-center" : ""}`}
+              className={`flex items-center gap-3 px-4 py-2.5 sm:py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition text-sm sm:text-base min-h-[44px] ${isCollapsed ? "justify-center" : ""}`}
             >
-              <Icon size={20} />
-              {!isCollapsed && <span>{label}</span>}
+              <Icon size={20} className="flex-shrink-0" />
+              {!isCollapsed && <span className="truncate">{label}</span>}
             </Link>
           ))}
 
@@ -152,9 +152,9 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
                 key={c.chat_id}
                 href={`/chat/${c.chat_id}`}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-100 transition text-sm ${isCollapsed ? "justify-center" : ""}`}
+                className={`flex items-center gap-3 px-4 py-2.5 sm:py-3 text-gray-700 rounded-xl hover:bg-gray-100 transition text-xs sm:text-sm min-h-[44px] ${isCollapsed ? "justify-center" : ""}`}
               >
-                <MessageSquare size={18} />
+                <MessageSquare size={18} className="flex-shrink-0" />
                 {!isCollapsed && <span className="truncate">Chat #{c.chat_id}</span>}
               </Link>
             ))}
@@ -162,12 +162,12 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
         </nav>
 
         {/* Logout */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-3 sm:p-4 border-t border-gray-200">
           <button
             onClick={handleLogout}
-            className={`flex items-center gap-3 px-4 py-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition w-full ${isCollapsed ? "justify-center" : ""}`}
+            className={`flex items-center gap-3 px-4 py-2.5 sm:py-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition w-full text-sm sm:text-base min-h-[44px] ${isCollapsed ? "justify-center" : ""}`}
           >
-            <LogOut size={20} />
+            <LogOut size={20} className="flex-shrink-0" />
             {!isCollapsed && <span>Logout</span>}
           </button>
         </div>
