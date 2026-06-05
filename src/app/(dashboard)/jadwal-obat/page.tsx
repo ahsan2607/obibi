@@ -52,10 +52,11 @@ export default function MedicationSchedulesPage() {
 
       const { data, error: fetchError } = await supabase
         .from("medication_schedules")
-        .select("*, medications!medication_schedules_medication_id_fkey(name)")
+        .select("*, medications(name)")
         .eq("patient_id", user.id)
         .order("start_date", { ascending: true })
         .order("scheduled_time", { ascending: true });
+
 
       if (fetchError) {
         console.error("Fetch error:", fetchError);
