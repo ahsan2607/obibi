@@ -51,25 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Get initial session
-    const getInitialSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      
-      if (!mounted) return;
-      
-      if (session) {
-        await loadPatientData(session.user);
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    };
-
-    getInitialSession();
-
     // Subscribe to auth changes (login, logout, token refresh, etc.)
+    // In newer Supabase versions, this immediately fires with the initial session
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {

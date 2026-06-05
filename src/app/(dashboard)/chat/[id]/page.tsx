@@ -24,16 +24,16 @@ export default function ChatSessionPage({ params }: { params: Promise<{ id: stri
     const fetchChat = async () => {
       const { data, error } = await supabase
         .from("chat_messages")
-        .select("content")
-        .eq("message_id", Number(id))
-        .single();
+        .select("role, content")
+        .eq("chat_id", id)
+        .order("waktu", { ascending: true });
 
       if (!error && data) {
-        try {
-          setChatLog(JSON.parse(data.content));
-        } catch {
-          setChatLog(data.content ? [data.content] : []);
-        }
+        // Map back to the previous string format so UI stays identical
+        const logArray = data.map((msg: any) => 
+          msg.role === 'user' ? `User: ${msg.content}` : `AI: ${msg.content}`
+        );
+        setChatLog(logArray);
       }
       setLoading(false);
     };
@@ -111,8 +111,10 @@ export default function ChatSessionPage({ params }: { params: Promise<{ id: stri
       // Save to DB
       await supabase
         .from("chat_messages")
-        .update({ content: JSON.stringify(updatedLogAI), waktu: new Date().toISOString() })
-        .eq("message_id", Number(id));
+        .insert([
+          { chat_id: id, pasien_id: user?.id, ai_id: 1, role: "user", content: logText },
+          { chat_id: id, pasien_id: user?.id, ai_id: 1, role: "model", content: aiText }
+        ]);
 
     } catch (err) {
       console.error("Failed", err);

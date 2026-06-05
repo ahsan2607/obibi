@@ -25,11 +25,11 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
     if (user) {
       const fetchChats = async () => {
         const { data } = await supabase
-          .from("chat_messages")
-          .select("message_id")
+          .from("chats")
+          .select("chat_id, title")
           .eq("pasien_id", user.id)
-          .order("waktu", { ascending: false });
-        if (data) setChats(data.map((item: any) => ({ chat_id: item.message_id })));
+          .order("created_at", { ascending: false });
+        if (data) setChats(data.map((item: any) => ({ chat_id: item.chat_id })));
       };
       fetchChats();
     }
@@ -43,11 +43,10 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
   const handleNewChat = async () => {
     if (!user) return;
 
-    const initialContent = JSON.stringify([]);
     const { data, error } = await supabase
-      .from("chat_messages")
-      .insert([{ pasien_id: user.id, ai_id: 1, role: "session", content: initialContent }])
-      .select("message_id")
+      .from("chats")
+      .insert([{ pasien_id: user.id, ai_id: 1, title: "New Conversation" }])
+      .select("chat_id")
       .single();
 
     if (error) {
@@ -56,8 +55,8 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
     }
 
     if (data) {
-      setChats([{ chat_id: data.message_id }, ...chats]);
-      router.push(`/chat/${data.message_id}`);
+      setChats([{ chat_id: data.chat_id }, ...chats]);
+      router.push(`/chat/${data.chat_id}`);
       setIsOpen(false); // close mobile menu after action
     }
   };
