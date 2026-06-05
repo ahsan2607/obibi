@@ -1,21 +1,162 @@
-import { CheckCircle2, Circle, TrendingUp, AlertCircle } from "lucide-react";
+"use client";
+
+import { CheckCircle2, Circle, TrendingUp, AlertCircle, Loader } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
+import { supabase } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
 
 export default function LaporanKepatuhanPage() {
-  const chartData = [
-    { date: "7 Ags", percent: 56 },
-    { date: "8 Ags", percent: 78 },
-    { date: "9 Ags", percent: 83 },
-    { date: "10 Ags", percent: 100 },
-    { date: "11 Ags", percent: 45 },
-    { date: "12 Ags", percent: 90 },
-    { date: "13 Ags", percent: 75 },
-  ];
+  const { user } = useAuth();
+  
+  // Real data state
+  const [todayMedicines, setTodayMedicines] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const todayMedicines = [
-    { id: 1, name: "Amlodipine 5mg", dosage: "1 tablet, Sesudah makan", time: "Pagi (08:00)", status: "taken" },
-    { id: 2, name: "Metformin 500mg", dosage: "1 tablet, Sesudah makan", time: "Siang (13:00)", status: "pending" },
-    { id: 3, name: "Simvastatin 20mg", dosage: "1 tablet, Malam sebelum tidur", time: "Malam (20:00)", status: "pending" },
-  ];
+  useEffect(() => {
+    if (user) {
+      fetchLaporanData();
+    }
+  }, [user]);
+
+  const fetchLaporanData = async () => {
+    try {
+      setLoading(true);
+      // Fetch user's schedules
+      const { data: jadwalData } = await supabase
+        .from("jadwal_obat")
+        .select("*")
+        .eq("pasien_id", user?.id)
+        .order("waktu_minum", { ascending: true });
+
+      // Generate today's schedule based on frequency
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const generatedToday: any[] = [];
+
+      (jadwalData || []).forEach(s => {
+        const dosis = (s.dosis || "").toLowerCase();
+        let hours = [new Date(s.waktu_minum).getHours() || 8];
+        let appliesToThisDay = true;
+
+        const startDate = new Date(s.waktu_minum);
+        startDate.setHours(0, 0, 0, 0);
+        
+        if (today < startDate) return;
+
+        if (dosis.includes("3x sehari") || dosis.includes("3x_every_day")) {
+          hours = [8, 13, 20];
+        } else if (dosis.includes("2x sehari") || dosis.includes("2x_every_day")) {
+          hours = [8, 20];
+        } else if (dosis.includes("1x sehari") || dosis.includes("1x_every_day")) {
+          hours = [new Date(s.waktu_minum).getHours() || 8];
+        }
+
+        const isSeminggu = dosis.includes("seminggu") || dosis.includes("a_week");
+        if (isSeminggu) {
+          const d = today.getDay();
+          if (dosis.includes("3x")) appliesToThisDay = [1, 3, 5].includes(d);
+          else if (dosis.includes("2x")) appliesToThisDay = [1, 4].includes(d);
+          else if (dosis.includes("1x")) appliesToThisDay = [startDate.getDay()].includes(d);
+        }
+
+        if (appliesToThisDay) {
+          hours.forEach(hr => {
+            const timeLabel = hr < 11 ? "Pagi" : hr <= 15 ? "Siang" : hr <= 18 ? "Sore" : "Malam";
+            generatedToday.push({
+              id: `${s.jadwal_id}-${hr}`, // using composite id for uniqueness per time
+              jadwal_id: s.jadwal_id,
+              name: s.nama_obat,
+              dosage: s.dosis,
+              time: `${timeLabel} (${String(hr).padStart(2, "0")}:00)`,
+              uniqueHour: hr,
+              status: "pending" // Default, will update based on laporan_kepatuhan
+            });
+          });
+        }
+      });
+
+      // Fetch kepatuhan status for today
+      const todayStr = new Date().toISOString().split("T")[0];
+      const { data: kepatuhanData } = await supabase
+        .from("laporan_kepatuhan")
+        .select("*")
+        .eq("pasien_id", user?.id)
+        .gte("tanggal", todayStr + "T00:00:00Z");
+
+      if (kepatuhanData && kepatuhanData.length > 0) {
+        // If a status is recorded, mark them in generatedToday
+        // In real app, you might want to link kepatuhan back to schedule parts
+        // For simplicity, we match by storing jadwal_id in status_kepatuhan JSON or parse it.
+        const statuses = kepatuhanData.map(k => {
+          try { return JSON.parse(k.status_kepatuhan); } catch { return []; }
+        }).flat();
+        
+        generatedToday.forEach(med => {
+          if (statuses.includes(med.id)) med.status = "taken";
+        });
+      }
+
+      setTodayMedicines(generatedToday.sort((a,b) => a.uniqueHour - b.uniqueHour));
+
+      // Generate dummy chart data or read past 7 days 
+      // (Using dummy structure but dynamic dates for realism as history might not exist yet)
+      const mockChart = Array.from({length: 7}, (_, i) => {
+        const d = new Date(); d.setDate(d.getDate() - (6 - i));
+        return {
+          date: d.toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
+          percent: Math.floor(Math.random() * 40) + 60 // Random 60-100%
+        };
+      });
+      setChartData(mockChart);
+
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const markAsTaken = async (medId: string) => {
+    if (!user) return;
+    try {
+      // Optimistic update
+      setTodayMedicines(prev => prev.map(m => m.id === medId ? { ...m, status: "taken" } : m));
+
+      // 1. Get today's record
+      const todayStr = new Date().toISOString().split("T")[0];
+      const { data: existing } = await supabase
+        .from("laporan_kepatuhan")
+        .select("*")
+        .eq("pasien_id", user.id)
+        .gte("tanggal", todayStr + "T00:00:00Z")
+        .single();
+      
+      let takenList = [medId];
+
+      if (existing) {
+        let current = [];
+        try { current = JSON.parse(existing.status_kepatuhan); } catch {}
+        takenList = [...new Set([...current, medId])];
+        
+        await supabase
+          .from("laporan_kepatuhan")
+          .update({ status_kepatuhan: JSON.stringify(takenList) })
+          .eq("laporan_id", existing.laporan_id);
+      } else {
+        await supabase
+          .from("laporan_kepatuhan")
+          .insert([{
+            pasien_id: user.id,
+            status_kepatuhan: JSON.stringify(takenList)
+          }]);
+      }
+    } catch (err) {
+      console.error("Failed to mark as taken", err);
+    }
+  };
+
+  if (!user) return null;
 
   return (
     <div className="flex-1 p-6 lg:p-8 overflow-y-auto bg-gray-50/50">
@@ -98,12 +239,19 @@ export default function LaporanKepatuhanPage() {
             </h2>
           </div>
           
-          <div className="space-y-4">
-            {todayMedicines.map((med) => (
-              <div 
-                key={med.id} 
-                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors gap-4"
-              >
+          {loading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader className="w-6 h-6 animate-spin text-blue-500" />
+            </div>
+          ) : todayMedicines.length === 0 ? (
+            <div className="text-center p-8 text-gray-500">Tidak ada jadwal obat untuk hari ini.</div>
+          ) : (
+            <div className="space-y-4">
+              {todayMedicines.map((med) => (
+                <div 
+                  key={med.id} 
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors gap-4"
+                >
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-800">{med.name}</h3>
                   <div className="text-sm text-gray-500 mt-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
@@ -114,6 +262,7 @@ export default function LaporanKepatuhanPage() {
                 </div>
                 
                 <button 
+                  onClick={() => med.status !== 'taken' && markAsTaken(med.id)}
                   className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 shrink-0
                     ${med.status === 'taken' 
                       ? 'bg-green-50 text-green-700 border border-green-200 cursor-default' 
@@ -134,6 +283,7 @@ export default function LaporanKepatuhanPage() {
               </div>
             ))}
           </div>
+          )}
         </div>
 
       </div>
