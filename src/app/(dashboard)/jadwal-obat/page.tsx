@@ -12,6 +12,7 @@ interface Schedule {
   dosage: string;
   time: string;
   date: string;
+  dateISO: string;
   user_id: string;
 }
 
@@ -43,13 +44,19 @@ export default function JadwalObatPage() {
   }, [user]);
 
   const fetchSchedules = async () => {
+    if (!user?.id) {
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
       const { data, error: fetchError } = await supabase
         .from("jadwal_obat")
-        .select("*")
+        .select("*, obat!jadwal_obat_obat_id_fkey(nama_obat)")
+        .eq("pasien_id", user.id)
+        .order("tanggal_mulai", { ascending: true })
         .order("waktu_minum", { ascending: true });
 
       if (fetchError) {
@@ -61,37 +68,47 @@ export default function JadwalObatPage() {
       // Mapping data dari jadwal_obat ke format Schedule
       const mappedSchedules = (data || []).map((item: any) => {
         try {
-          let waktuMinum = new Date(item.waktu_minum);
-          
-          // Validate date parsing
-          if (isNaN(waktuMinum.getTime())) {
-            console.warn("Invalid date for item:", item);
-            waktuMinum = new Date();
-          }
+          const [hours = "00", minutes = "00"] = item.waktu_minum?.toString().split(":") || [];
+          const time = `${hours.padStart(2, "0")}.${minutes.padStart(2, "0")}`;
 
-          const time = `${String(waktuMinum.getHours()).padStart(2, "0")}.${String(waktuMinum.getMinutes()).padStart(2, "0")}`;
-          const year = waktuMinum.getFullYear();
-          const month = String(waktuMinum.getMonth() + 1).padStart(2, "0");
-          const day = String(waktuMinum.getDate()).padStart(2, "0");
+          const scheduleDate = item.tanggal_mulai ? new Date(item.tanggal_mulai) : null;
+          const safeDate = scheduleDate && !isNaN(scheduleDate.getTime()) ? scheduleDate : new Date();
+          const year = safeDate.getFullYear();
+          const month = String(safeDate.getMonth() + 1).padStart(2, "0");
+          const day = String(safeDate.getDate()).padStart(2, "0");
           const date = `${year}-${month}-${day}`;
+          const dateISO = date;
+
+          const obat = Array.isArray(item.obat) ? item.obat[0] : item.obat;
+          const namaObat = obat?.nama_obat;
 
           return {
             id: String(item.jadwal_id),
-            medicine_name: item.nama_obat || "Obat Tidak Diketahui",
+            medicine_name: namaObat || "Obat Tidak Diketahui",
             dosage: item.dosis || "-",
-            time: time,
-            date: date,
-            user_id: "",
+            time,
+            date,
+            dateISO,
+            user_id: String(item.pasien_id || ""),
           };
         } catch (err) {
           console.error("Error mapping schedule item:", item, err);
+
+          const obatError = Array.isArray(item.obat) ? item.obat[0] : item.obat;
+          const namaObatError = obatError?.nama_obat;
+          const fallbackDate = new Date();
+          const year = fallbackDate.getFullYear();
+          const month = String(fallbackDate.getMonth() + 1).padStart(2, "0");
+          const day = String(fallbackDate.getDate()).padStart(2, "0");
+
           return {
             id: String(item.jadwal_id) || "unknown",
-            medicine_name: item.nama_obat || "Obat Tidak Diketahui",
+            medicine_name: namaObatError || "Obat Tidak Diketahui",
             dosage: item.dosis || "-",
             time: "00.00",
-            date: new Date().toISOString().split("T")[0],
-            user_id: "",
+            date: `${year}-${month}-${day}`,
+            dateISO: `${year}-${month}-${day}`,
+            user_id: String(item.pasien_id || ""),
           };
         }
       });
@@ -129,9 +146,9 @@ export default function JadwalObatPage() {
     const year = currentDate.getFullYear();
     const month = String(currentDate.getMonth() + 1).padStart(2, "0");
     const day = String(currentDate.getDate()).padStart(2, "0");
-    const dateStr = `${year}-${month}-${day}`;
+    const dateISO = `${year}-${month}-${day}`;
 
-    return schedules.filter((s) => s.date === dateStr).sort((a, b) => a.time.localeCompare(b.time));
+    return schedules.filter((s) => s.dateISO === dateISO).sort((a, b) => a.time.localeCompare(b.time));
   };
 
   // Calculate stats
@@ -141,8 +158,8 @@ export default function JadwalObatPage() {
     compliance: 0,
     upcoming: schedules.filter((s) => {
       const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-      return s.date >= todayStr;
+      const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      return s.dateISO >= todayISO;
     }).length,
   };
 
@@ -198,7 +215,7 @@ export default function JadwalObatPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-4 md:p-6 shadow-sm sticky top-0 z-10">
         <div className="max-w-full">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Pengingat Obat</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Jadwal Obat</h1>
           <div className="flex items-center gap-2 text-teal-700 bg-teal-50 px-3 py-2 rounded-lg mt-3 w-fit">
             <Bell size={16} />
             <p className="text-sm font-medium">Atur pengingat untuk membantu Anda minum obat tepat waktu. Jangan sampai terlewat lagi!</p>
@@ -368,7 +385,7 @@ export default function JadwalObatPage() {
                     const monthStr = String(currentDate.getMonth() + 1).padStart(2, "0");
                     const yearStr = String(currentDate.getFullYear());
                     const checkDateStr = `${yearStr}-${monthStr}-${dayStr}`;
-                    const hasSchedules = schedules.some((s) => s.date === checkDateStr);
+                    const hasSchedules = schedules.some((s) => s.dateISO === checkDateStr);
 
                     return (
                       <button
