@@ -25,11 +25,11 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
     if (user) {
       const fetchChats = async () => {
         const { data } = await supabase
-          .from("chat")
-          .select("chat_id")
+          .from("chat_messages")
+          .select("message_id")
           .eq("pasien_id", user.id)
           .order("waktu", { ascending: false });
-        if (data) setChats(data);
+        if (data) setChats(data.map((item: any) => ({ chat_id: item.message_id })));
       };
       fetchChats();
     }
@@ -43,10 +43,11 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
   const handleNewChat = async () => {
     if (!user) return;
 
+    const initialContent = JSON.stringify([]);
     const { data, error } = await supabase
-      .from("chat")
-      .insert([{ pasien_id: user.id, chat: [] }])
-      .select("chat_id")
+      .from("chat_messages")
+      .insert([{ pasien_id: user.id, ai_id: 1, role: "session", content: initialContent }])
+      .select("message_id")
       .single();
 
     if (error) {
@@ -55,8 +56,8 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
     }
 
     if (data) {
-      setChats([{ chat_id: data.chat_id }, ...chats]);
-      router.push(`/chat/${data.chat_id}`);
+      setChats([{ chat_id: data.message_id }, ...chats]);
+      router.push(`/chat/${data.message_id}`);
       setIsOpen(false); // close mobile menu after action
     }
   };

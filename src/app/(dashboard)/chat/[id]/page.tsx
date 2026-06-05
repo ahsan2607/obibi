@@ -23,13 +23,17 @@ export default function ChatSessionPage({ params }: { params: Promise<{ id: stri
 
     const fetchChat = async () => {
       const { data, error } = await supabase
-        .from("chat")
-        .select("chat")
-        .eq("chat_id", Number(id))
+        .from("chat_messages")
+        .select("content")
+        .eq("message_id", Number(id))
         .single();
 
       if (!error && data) {
-        setChatLog(data.chat || []);
+        try {
+          setChatLog(JSON.parse(data.content));
+        } catch {
+          setChatLog(data.content ? [data.content] : []);
+        }
       }
       setLoading(false);
     };
@@ -106,9 +110,9 @@ export default function ChatSessionPage({ params }: { params: Promise<{ id: stri
 
       // Save to DB
       await supabase
-        .from("chat")
-        .update({ chat: updatedLogAI, respon_ai: aiText })
-        .eq("chat_id", Number(id));
+        .from("chat_messages")
+        .update({ content: JSON.stringify(updatedLogAI), waktu: new Date().toISOString() })
+        .eq("message_id", Number(id));
 
     } catch (err) {
       console.error("Failed", err);
