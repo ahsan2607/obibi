@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Pasien } from "@/lib/types";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -17,6 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Pasien | null>(null);
   const [loading, setLoading] = useState(true);
+  const initRef = useRef(false);
 
   // Helper function to fetch full Pasien data from your table
   const loadPatientData = useCallback(
@@ -51,8 +52,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
+    const getInitialSession = async () => {
+      // Prevent strict mode rapid re-firing of getSession
+      if (initRef.current) return;
+      initRef.current = true;
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        
+        if (session) {
+          await loadPatientData(session.user);
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.warn("Ignored Auth getSession error", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    getInitialSession();
+
     // Subscribe to auth changes (login, logout, token refresh, etc.)
-    // In newer Supabase versions, this immediately fires with the initial session
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
