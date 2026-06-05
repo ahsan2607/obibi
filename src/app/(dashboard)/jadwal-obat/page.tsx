@@ -60,21 +60,40 @@ export default function JadwalObatPage() {
 
       // Mapping data dari jadwal_obat ke format Schedule
       const mappedSchedules = (data || []).map((item: any) => {
-        const waktuMinum = new Date(item.waktu_minum);
-        const time = `${String(waktuMinum.getHours()).padStart(2, "0")}:${String(waktuMinum.getMinutes()).padStart(2, "0")}`;
-        const year = waktuMinum.getFullYear();
-        const month = String(waktuMinum.getMonth() + 1).padStart(2, "0");
-        const day = String(waktuMinum.getDate()).padStart(2, "0");
-        const date = `${day}-${month}-${year}`;
+        try {
+          let waktuMinum = new Date(item.waktu_minum);
+          
+          // Validate date parsing
+          if (isNaN(waktuMinum.getTime())) {
+            console.warn("Invalid date for item:", item);
+            waktuMinum = new Date();
+          }
 
-        return {
-          id: String(item.jadwal_id),
-          medicine_name: item.nama_obat,
-          dosage: item.dosis,
-          time: time,
-          date: date,
-          user_id: "",
-        };
+          const time = `${String(waktuMinum.getHours()).padStart(2, "0")}.${String(waktuMinum.getMinutes()).padStart(2, "0")}`;
+          const year = waktuMinum.getFullYear();
+          const month = String(waktuMinum.getMonth() + 1).padStart(2, "0");
+          const day = String(waktuMinum.getDate()).padStart(2, "0");
+          const date = `${year}-${month}-${day}`;
+
+          return {
+            id: String(item.jadwal_id),
+            medicine_name: item.nama_obat || "Obat Tidak Diketahui",
+            dosage: item.dosis || "-",
+            time: time,
+            date: date,
+            user_id: "",
+          };
+        } catch (err) {
+          console.error("Error mapping schedule item:", item, err);
+          return {
+            id: String(item.jadwal_id) || "unknown",
+            medicine_name: item.nama_obat || "Obat Tidak Diketahui",
+            dosage: item.dosis || "-",
+            time: "00.00",
+            date: new Date().toISOString().split("T")[0],
+            user_id: "",
+          };
+        }
       });
 
       setSchedules(mappedSchedules);
@@ -110,7 +129,7 @@ export default function JadwalObatPage() {
     const year = currentDate.getFullYear();
     const month = String(currentDate.getMonth() + 1).padStart(2, "0");
     const day = String(currentDate.getDate()).padStart(2, "0");
-    const dateStr = `${day}-${month}-${year}`;
+    const dateStr = `${year}-${month}-${day}`;
 
     return schedules.filter((s) => s.date === dateStr).sort((a, b) => a.time.localeCompare(b.time));
   };
@@ -120,7 +139,11 @@ export default function JadwalObatPage() {
     active: schedules.length,
     today: getSchedulesForSelectedDate().length,
     compliance: 0,
-    upcoming: schedules.filter((s) => s.date >= new Date().toISOString().split("T")[0]).length,
+    upcoming: schedules.filter((s) => {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      return s.date >= todayStr;
+    }).length,
   };
 
   // Calendar days
@@ -341,14 +364,11 @@ export default function JadwalObatPage() {
                   ))}
                   {calendarDays.map((day) => {
                     const isSelected = isSelectedDay(day);
-                    const hasSchedules = schedules.some((s) => {
-                      const schedDate = new Date(s.date);
-                      return (
-                        schedDate.getDate() === day &&
-                        schedDate.getMonth() === currentDate.getMonth() &&
-                        schedDate.getFullYear() === currentDate.getFullYear()
-                      );
-                    });
+                    const dayStr = String(day).padStart(2, "0");
+                    const monthStr = String(currentDate.getMonth() + 1).padStart(2, "0");
+                    const yearStr = String(currentDate.getFullYear());
+                    const checkDateStr = `${yearStr}-${monthStr}-${dayStr}`;
+                    const hasSchedules = schedules.some((s) => s.date === checkDateStr);
 
                     return (
                       <button
@@ -388,18 +408,18 @@ export default function JadwalObatPage() {
                           key={schedule.id}
                           className={`${bg} border-l-4 ${border} rounded-lg p-4 shadow-sm hover:shadow-md transition`}
                         >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
                               <p className="text-base font-bold text-gray-900">{schedule.medicine_name}</p>
                               <p className="text-sm text-gray-600 mt-1">{schedule.dosage}</p>
-                              <div className="flex items-center gap-2 mt-3">
-                                <Clock size={14} className="text-gray-500" />
-                                <p className="text-sm text-gray-600">pukul {schedule.time}</p>
-                              </div>
                             </div>
                             <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
                               Aktif
                             </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock size={14} className="text-gray-500" />
+                            <p className="text-sm text-gray-600">pukul {schedule.time || "00.00"}</p>
                           </div>
                           <p className="text-xs text-gray-500 mt-3">Konsumsi bersama makanan</p>
                         </div>
@@ -430,21 +450,21 @@ export default function JadwalObatPage() {
                       key={schedule.id}
                       className={`${bg} border-l-4 ${border} rounded-lg p-4 shadow-sm hover:shadow-md transition`}
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
                           <p className="text-base font-bold text-gray-900">{schedule.medicine_name}</p>
                           <p className="text-sm text-gray-600 mt-1">{schedule.dosage}</p>
-                          <div className="flex gap-4 mt-3 text-sm text-gray-600">
-                            <div className="flex items-center gap-2">
-                              <Clock size={14} />
-                              {schedule.time}
-                            </div>
-                            <div>Tanggal: {schedule.date}</div>
-                          </div>
                         </div>
                         <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
                           Aktif
                         </div>
+                      </div>
+                      <div className="flex gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <Clock size={14} />
+                          {schedule.time || "00.00"}
+                        </div>
+                        <div>Tanggal: {schedule.date || "-"}</div>
                       </div>
                     </div>
                   );
@@ -463,7 +483,11 @@ export default function JadwalObatPage() {
             <h3 className="text-lg font-bold text-gray-900 mb-4">Jadwal Mendatang</h3>
             <div className="space-y-4">
               {schedules
-                .filter((s) => s.date >= new Date().toISOString().split("T")[0])
+                .filter((s) => {
+                  const today = new Date();
+                  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+                  return s.date >= todayStr;
+                })
                 .map((schedule, idx) => {
                   const colorIndex = idx % colorPalette.length;
                   const { bg, border } = colorPalette[colorIndex];
@@ -473,21 +497,21 @@ export default function JadwalObatPage() {
                       key={schedule.id}
                       className={`${bg} border-l-4 ${border} rounded-lg p-4 shadow-sm hover:shadow-md transition`}
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
                           <p className="text-base font-bold text-gray-900">{schedule.medicine_name}</p>
                           <p className="text-sm text-gray-600 mt-1">{schedule.dosage}</p>
-                          <div className="flex gap-4 mt-3 text-sm text-gray-600">
-                            <div className="flex items-center gap-2">
-                              <Clock size={14} />
-                              {schedule.time}
-                            </div>
-                            <div>Tanggal: {schedule.date}</div>
-                          </div>
                         </div>
                         <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
                           Aktif
                         </div>
+                      </div>
+                      <div className="flex gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <Clock size={14} />
+                          {schedule.time || "00.00"}
+                        </div>
+                        <div>Tanggal: {schedule.date || "-"}</div>
                       </div>
                     </div>
                   );
