@@ -1,4 +1,12 @@
-export default function DrugInteractionsPage() {
+import React from "react";
+
+/**
+ * DrugInteractionsPage component serving as a placeholder for the drug interaction checking feature.
+ * 
+ * Initial state: None.
+ * Final state: Returns a styled placeholder message.
+ */
+export const DrugInteractionsPage: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col items-center justify-center bg-white p-8 text-center h-full">
       <div className="bg-blue-50 p-6 rounded-full mb-6">
@@ -10,4 +18,6 @@ export default function DrugInteractionsPage() {
       </p>
     </div>
   );
-}
+};
+
+export default DrugInteractionsPage;
