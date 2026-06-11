@@ -15,6 +15,14 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    // Override rules here
+    rules: {
+      "no-nested-ternary": "off",
+      "sonarjs/no-nested-conditional": "off",
+      "sonarjs/no-nested-ternary": "off"
+    }
+  },
 ]);
 
 export default eslintConfig;

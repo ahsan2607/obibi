@@ -2,6 +2,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+/**
+ * Creates and returns a Supabase server client for use in Server Components and API routes.
+ * 
+ * Initial state: Retrieves cookies from the current request.
+ * Final state: Returns a configured Supabase server client with cookie handling.
+ */
 export async function createClient() {
   const cookieStore = await cookies();
 

@@ -3,9 +3,17 @@
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
 import { Medication } from "@/lib/types";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { MedicationForm } from "@/components/medication/MedicationForm";
+import { MedicationCard } from "@/components/medication/MedicationCard";
 
+/**
+ * MedicationsPage component that manages the user's medication list.
+ * 
+ * Initial state: Fetches the medication list for the logged-in user.
+ * Final state: Renders a list of MedicationCard components and a MedicationForm for adding new ones.
+ */
 export default function MedicationsPage() {
   const { user } = useAuth();
   const [medicationList, setMedicationList] = useState<Medication[]>([]);
@@ -27,6 +35,9 @@ export default function MedicationsPage() {
     }
   }, [user]);
 
+  /**
+   * Fetches medications from the Supabase database.
+   */
   const fetchMedications = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -43,6 +54,11 @@ export default function MedicationsPage() {
     setLoading(false);
   };
 
+  /**
+   * Handles adding a new medication.
+   * 
+   * @param e - The form event.
+   */
   const handleAddMedication = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !description || !dosage || !user) return;
@@ -76,6 +92,13 @@ export default function MedicationsPage() {
     }
     
     setShowForm(false);
+    resetForm();
+  };
+
+  /**
+   * Resets the medication form fields.
+   */
+  const resetForm = () => {
     setName("");
     setDescription("");
     setDosage("");
@@ -85,6 +108,11 @@ export default function MedicationsPage() {
     setStockUnit("piece");
   };
 
+  /**
+   * Handles deleting a medication.
+   * 
+   * @param id - The ID of the medication to delete.
+   */
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this medication?")) return;
 
@@ -115,107 +143,24 @@ export default function MedicationsPage() {
         </div>
 
         {showForm && (
-          <form onSubmit={handleAddMedication} className="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Medication Name</label>
-              <input
-                required
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
-                placeholder="e.g. Paracetamol"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <input
-                required
-                type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
-                placeholder="e.g. Fever, Headache"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Dosage</label>
-              <input
-                required
-                type="text"
-                value={dosage}
-                onChange={(e) => setDosage(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
-                placeholder="e.g. 3x Daily"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Side Effects</label>
-              <input
-                type="text"
-                value={sideEffects}
-                onChange={(e) => setSideEffects(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
-                placeholder="e.g. Drowsiness"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Form</label>
-              <select
-                value={form}
-                onChange={(e) => setForm(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
-              >
-                <option value="tablet">Tablet</option>
-                <option value="capsule">Capsule</option>
-                <option value="liquid">Liquid</option>
-                <option value="drops">Drops</option>
-                <option value="cream">Cream</option>
-                <option value="injection">Injection</option>
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={stockQuantity}
-                  onChange={(e) => setStockQuantity(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                <select
-                  value={stockUnit}
-                  onChange={(e) => setStockUnit(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
-                >
-                  <option value="piece">Piece</option>
-                  <option value="ml">ML</option>
-                  <option value="mg">MG</option>
-                  <option value="drop">Drop</option>
-                  <option value="puff">Puff</option>
-                </select>
-              </div>
-            </div>
-            <div className="md:col-span-2 flex justify-end gap-2 mt-2">
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                Save Medication
-              </button>
-            </div>
-          </form>
+          <MedicationForm
+            name={name}
+            setName={setName}
+            description={description}
+            setDescription={setDescription}
+            dosage={dosage}
+            setDosage={setDosage}
+            sideEffects={sideEffects}
+            setSideEffects={setSideEffects}
+            form={form}
+            setForm={setForm}
+            stockQuantity={stockQuantity}
+            setStockQuantity={setStockQuantity}
+            stockUnit={stockUnit}
+            setStockUnit={setStockUnit}
+            handleSubmit={handleAddMedication}
+            onCancel={() => setShowForm(false)}
+          />
         )}
 
         {loading ? (
@@ -227,37 +172,7 @@ export default function MedicationsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {medicationList.map((med) => (
-              <div key={med.id} className="bg-white border border-gray-200 p-5 rounded-xl shadow-sm hover:shadow-md transition relative group">
-                <button
-                  onClick={() => handleDelete(med.id)}
-                  className="absolute top-4 right-4 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
-                >
-                  <Trash2 size={18} />
-                </button>
-                <h3 className="font-bold text-lg text-blue-900 mb-1">{med.name}</h3>
-                <div className="text-sm text-gray-500 mb-3">{med.description}</div>
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Dosage:</span>
-                    <span className="font-medium text-gray-800">{med.dosage}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Form:</span>
-                    <span className="font-medium text-gray-800 capitalize">{med.form}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Stock:</span>
-                    <span className="font-medium text-gray-800">{med.stock_quantity} {med.stock_unit}</span>
-                  </div>
-                  {med.side_effects && (
-                    <div className="flex flex-col gap-1 mt-2">
-                      <span className="text-gray-500 text-xs uppercase font-semibold">Side Effects:</span>
-                      <span className="text-gray-700 italic">{med.side_effects}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <MedicationCard key={med.id} medication={med} onDelete={handleDelete} />
             ))}
           </div>
         )}

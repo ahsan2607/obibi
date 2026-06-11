@@ -1,13 +1,24 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, Part } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
 // Initialize Gemini API
 const apiKey = process.env.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(apiKey);
 
+interface HistoryMessage {
+  text: string;
+  role: "user" | "assistant" | "model";
+}
+
+/**
+ * Handles POST requests for the chat API, communicating with the Gemini AI model.
+ * 
+ * Initial state: Receives chatId, message, history, and optional imageBase64 from the request body.
+ * Final state: Returns the AI-generated response text and any extracted actions.
+ */
 export async function POST(req: Request) {
   try {
-    const { chatId, message, history, imageBase64 } = await req.json();
+    const { message, history, imageBase64 } = await req.json();
 
     if (!apiKey) {
       return NextResponse.json(
@@ -17,9 +28,8 @@ export async function POST(req: Request) {
     }
 
     // Convert history to Gemini format
-    const formattedHistory = history.map((msg: any) => {
-      const parts: any[] = [{ text: msg.text }];
-      // If history had images we could include them, but for simplicity we only process current image
+    const formattedHistory = (history as HistoryMessage[]).map((msg) => {
+      const parts: Part[] = [{ text: msg.text }];
       return {
         role: msg.role === "user" ? "user" : "model",
         parts: parts,
@@ -36,7 +46,7 @@ export async function POST(req: Request) {
       history: formattedHistory,
     });
 
-    const messageParts: any[] = [{ text: message }];
+    const messageParts: Part[] = [{ text: message }];
     if (imageBase64) {
       const mimeType = imageBase64.substring(5, imageBase64.indexOf(";base64,"));
       const base64Data = imageBase64.split(";base64,")[1];
@@ -65,10 +75,11 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ text: responseText, extractedActions });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Gemini API Error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate response";
     return NextResponse.json(
-      { error: "Failed to generate response", details: error.message },
+      { error: "Failed to generate response", details: errorMessage },
       { status: 500 }
     );
   }
