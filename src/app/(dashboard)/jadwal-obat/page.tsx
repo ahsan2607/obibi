@@ -66,9 +66,12 @@ export default function MedicationSchedulesPage() {
 
       const mappedSchedules = (data || []).map((item: any) => {
         try {
-          const [hours = "00", minutes = "00"] = item.scheduled_time?.toString().split(":") || [];
+          // scheduled_time stored as "HH:MM:SS" or "HH:MM"
+          const scheduledTimeStr = item.scheduled_time ? String(item.scheduled_time) : "00:00";
+          const [hours = "00", minutes = "00"] = scheduledTimeStr.split(":");
           const time = `${hours.padStart(2, "0")}.${minutes.padStart(2, "0")}`;
 
+          // start_date is a date (YYYY-MM-DD) or may be null
           const scheduleDate = item.start_date ? new Date(item.start_date) : null;
           const safeDate = scheduleDate && !isNaN(scheduleDate.getTime()) ? scheduleDate : new Date();
           const year = safeDate.getFullYear();
@@ -77,13 +80,17 @@ export default function MedicationSchedulesPage() {
           const date = `${year}-${month}-${day}`;
           const dateISO = date;
 
-          const medication = item.medications;
+          // medication relation may be returned as `medications` or `medication` depending on relationship
+          const medication = item.medications || item.medication || null;
           const medicineName = medication?.name;
+
+          // dosis column contains dosage text (per DB schema)
+          const dosage = item.dosis || item.dosage || "-";
 
           return {
             id: String(item.id),
             medicine_name: medicineName || "Unknown Medication",
-            dosage: item.dosage_quantity ? `${item.dosage_quantity} ${item.dosage_unit || ''}` : "-",
+            dosage,
             time,
             date,
             dateISO,
@@ -93,8 +100,8 @@ export default function MedicationSchedulesPage() {
           console.error("Error mapping schedule item:", item, err);
           return {
             id: String(item.id) || "unknown",
-            medicine_name: item.medications?.name || "Unknown Medication",
-            dosage: "-",
+            medicine_name: item.medications?.name || item.medication?.name || "Unknown Medication",
+            dosage: item.dosis || item.dosage || "-",
             time: "00.00",
             date: "",
             dateISO: "",
@@ -149,6 +156,14 @@ export default function MedicationSchedulesPage() {
   });
 
   const selectedSchedules = getSchedulesForSelectedDate();
+
+  // Calendar helpers
+  const firstDayIndex = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  const emptyDays = Array.from({ length: firstDayIndex }, (_, i) => i);
+  const calendarDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const selectedDayNumber = currentDate.getDate();
+  const isSelectedDay = (day: number) => day === selectedDayNumber;
 
   return (
     <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
@@ -286,9 +301,36 @@ export default function MedicationSchedulesPage() {
                     <ChevronRight size={18} />
                   </button>
                 </div>
-                {/* Simplified Calendar Grid for now */}
+                {/* Calendar Grid */}
                 <div className="grid grid-cols-7 gap-2">
-                  {/* ... Logic to render calendar days ... */}
+                  {emptyDays.map((i) => (
+                    <div key={`empty-${i}`} />
+                  ))}
+                  {calendarDays.map((day) => {
+                    const isSelected = isSelectedDay(day);
+                    const dayStr = String(day).padStart(2, "0");
+                    const monthStr = String(currentDate.getMonth() + 1).padStart(2, "0");
+                    const yearStr = String(currentDate.getFullYear());
+                    const checkDateStr = `${yearStr}-${monthStr}-${dayStr}`;
+                    const hasSchedules = schedules.some((s) => s.dateISO === checkDateStr);
+
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => handleDateSelect(day)}
+                        className={`py-2 text-sm font-medium rounded-lg transition touch-manipulation relative ${
+                          isSelected
+                            ? "bg-teal-500 text-white"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        {day}
+                        {hasSchedules && !isSelected && (
+                          <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-teal-500 rounded-full" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
