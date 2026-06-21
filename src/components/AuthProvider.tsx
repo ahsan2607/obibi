@@ -25,6 +25,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [sessionUser, setSessionUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const initRef = useRef(false);
+  const userRef = useRef<Patient | null>(null);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     let mounted = true;
@@ -58,7 +63,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (event === "INITIAL_SESSION") return; 
 
         if (session?.user) {
-          setSessionUser(session.user);
+          setSessionUser((prev) => {
+            if (prev?.id === session.user.id) {
+              return prev; // Return the exact same reference to prevent re-renders & downstream effects
+            }
+            return session.user;
+          });
         } else {
           setSessionUser(null);
           setUser(null);
@@ -89,7 +99,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      setLoading(true);
+      // Only set loading to true if we haven't loaded the user yet or the user ID changed
+      if (!userRef.current || userRef.current.id !== sessionUser.id) {
+        setLoading(true);
+      }
       try {
         const { data: patientData, error } = await supabase
           .from("patients")
@@ -101,13 +114,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (error) {
           console.error("Error fetching patient data:", error);
-          setUser({
+          const localUser: Patient = {
             id: sessionUser.id,
             email: sessionUser.email!,
             name: sessionUser.user_metadata?.name || sessionUser.email?.split("@")[0] || "",
-          }); 
+          };
+          if (typeof window !== "undefined") {
+            const savedAvatar = localStorage.getItem(`obibi_avatar_${sessionUser.id}`);
+            if (savedAvatar) {
+              localUser.avatar_url = savedAvatar;
+            }
+          }
+          setUser(localUser); 
         } else {
-          setUser(patientData as Patient); 
+          const patient = patientData as Patient;
+          if (typeof window !== "undefined") {
+            const savedAvatar = localStorage.getItem(`obibi_avatar_${patient.id}`);
+            if (savedAvatar) {
+              patient.avatar_url = savedAvatar;
+            }
+          }
+          setUser(patient); 
         }
       } catch (err) {
         console.error("Unexpected error loading patient data:", err);

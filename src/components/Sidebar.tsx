@@ -2,7 +2,7 @@
 
 import { useAuth } from "./AuthProvider";
 import { useRouter } from "next/navigation";
-import { MessageSquare, Pill, Calendar, FileText, AlertTriangle, LayoutDashboard } from "lucide-react";
+import { MessageSquare, Pill, Calendar, FileText, AlertTriangle, LayoutDashboard, Trash2, User } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
@@ -83,6 +83,40 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
   };
 
   /**
+   * Deletes a chat history session and its associated messages.
+   */
+  const handleDeleteChat = async (chatId: string) => {
+    if (!confirm("Are you sure you want to delete this chat history?")) return;
+
+    try {
+      // 1. Delete messages first
+      const { error: msgError } = await supabase
+        .from("chat_messages")
+        .delete()
+        .eq("chat_id", chatId);
+      if (msgError) throw msgError;
+
+      // 2. Delete chat session
+      const { error: chatError } = await supabase
+        .from("chats")
+        .delete()
+        .eq("id", chatId);
+      if (chatError) throw chatError;
+
+      // 3. Update state
+      setChats((prev) => prev.filter((c) => c.id !== chatId));
+
+      // 4. If viewing the deleted chat, redirect to chat landing page
+      if (typeof window !== "undefined" && window.location.pathname.includes(`/chat/${chatId}`)) {
+        router.push("/chat");
+      }
+    } catch (err) {
+      console.error("Failed to delete chat history", err);
+      alert("Failed to delete chat history");
+    }
+  };
+
+  /**
    * Toggles the collapsed state of the sidebar.
    */
   const toggleCollapse = () => setIsCollapsed(!isCollapsed);
@@ -110,6 +144,7 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
         <SidebarHeader 
           isCollapsed={isCollapsed} 
           userName={user.name} 
+          avatarUrl={user.avatar_url}
           onToggleCollapse={toggleCollapse} 
         />
 
@@ -121,6 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
           <SidebarLink href="/jadwal-obat" icon={Calendar} label="Schedule" isCollapsed={isCollapsed} onClick={() => setIsOpen(false)} />
           <SidebarLink href="/laporan-kepatuhan" icon={FileText} label="Compliance" isCollapsed={isCollapsed} onClick={() => setIsOpen(false)} />
           <SidebarLink href="/interaksi-obat" icon={AlertTriangle} label="Interactions" isCollapsed={isCollapsed} onClick={() => setIsOpen(false)} />
+          <SidebarLink href="/profile" icon={User} label="Profile" isCollapsed={isCollapsed} onClick={() => setIsOpen(false)} />
 
           {!isCollapsed && (
             <div className="pt-6 pb-2 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
@@ -130,15 +166,29 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
 
           <div className="space-y-1">
             {chats.map((c) => (
-              <Link
-                key={c.id}
-                href={`/chat/${c.id}`}
-                onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-100 transition text-sm ${isCollapsed ? "justify-center" : ""}`}
-              >
-                <MessageSquare size={18} />
-                {!isCollapsed && <span className="truncate">Chat #{c.id.substring(0, 8)}</span>}
-              </Link>
+              <div key={c.id} className="relative group">
+                <Link
+                  href={`/chat/${c.id}`}
+                  onClick={() => setIsOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-100 transition text-sm ${isCollapsed ? "justify-center" : "pr-10"}`}
+                >
+                  <MessageSquare size={18} />
+                  {!isCollapsed && <span className="truncate">Chat #{c.id.substring(0, 8)}</span>}
+                </Link>
+                {!isCollapsed && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDeleteChat(c.id);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-200 transition opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    title="Delete Chat History"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </nav>
