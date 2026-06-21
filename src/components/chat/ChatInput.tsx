@@ -1,5 +1,5 @@
-import React, { useRef } from "react";
-import { Paperclip, Send, X } from "lucide-react";
+import React, { useRef, useState, useEffect } from "react";
+import { Mic, MicOff, Paperclip, Send, X } from "lucide-react";
 
 interface ChatInputProps {
   input: string;
@@ -25,6 +25,65 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   handleSend,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [isSupported, setIsSupported] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const inputRef = useRef(input);
+
+  useEffect(() => {
+    inputRef.current = input;
+  }, [input]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        setIsSupported(true);
+        const rec = new SpeechRecognition();
+        rec.continuous = false;
+        rec.interimResults = false;
+        rec.lang = typeof navigator !== "undefined" ? (navigator.language || "id-ID") : "id-ID";
+
+        rec.onstart = () => {
+          setIsListening(true);
+        };
+
+        rec.onend = () => {
+          setIsListening(false);
+        };
+
+        rec.onerror = (event: any) => {
+          console.error("Speech recognition error:", event.error);
+          setIsListening(false);
+        };
+
+        rec.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          if (transcript) {
+            const prev = inputRef.current;
+            const space = prev.length > 0 && !prev.endsWith(" ") ? " " : "";
+            setInput(prev + space + transcript);
+          }
+        };
+
+        recognitionRef.current = rec;
+      }
+    }
+  }, [setInput]);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      try {
+        recognitionRef.current.start();
+      } catch (err) {
+        console.error("Failed to start speech recognition", err);
+      }
+    }
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -35,6 +94,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       };
       reader.readAsDataURL(file);
     }
+    // Reset file input value so selecting the same file again triggers onChange
+    e.target.value = "";
   };
 
   return (
@@ -69,13 +130,32 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your health questions here..."
-          className="flex-1 border border-gray-300 rounded-full px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm text-gray-800 bg-white"
-          disabled={sending}
+          placeholder={isListening ? "Listening... Speak now." : "Type your health questions here..."}
+          className={`flex-1 border rounded-full px-4 py-3 focus:outline-none focus:ring-1 text-sm text-gray-800 bg-white transition-all duration-300 ${
+            isListening
+              ? "border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50/10 placeholder-red-400"
+              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+          }`}
+          disabled={sending || isListening}
         />
+        {isSupported && (
+          <button
+            type="button"
+            onClick={toggleListening}
+            disabled={sending}
+            className={`rounded-full w-12 h-12 flex items-center justify-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+              isListening
+                ? "bg-red-500 text-white hover:bg-red-600 animate-pulse shadow-lg shadow-red-500/30"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900"
+            }`}
+            title={isListening ? "Stop listening" : "Start voice input"}
+          >
+            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+          </button>
+        )}
         <button
           type="submit"
-          disabled={sending || (!input.trim() && !selectedImage)}
+          disabled={sending || isListening || (!input.trim() && !selectedImage)}
           className="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
           <Send size={20} />

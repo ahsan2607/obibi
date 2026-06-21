@@ -50,7 +50,7 @@ export default function ComplianceLogsPage() {
       // 1. Fetch user's schedules
       const { data: scheduleData } = await supabase
         .from("medication_schedules")
-        .select("*, medications(name)")
+        .select("*, medications(name, stock_quantity)")
         .eq("patient_id", user?.id)
         .order("scheduled_time", { ascending: true });
 
@@ -104,6 +104,12 @@ export default function ComplianceLogsPage() {
       // 3. Generate today's medicines list
       const generatedToday: any[] = [];
       (scheduleData || []).forEach((s: any) => {
+        // Exclude schedules where the medication is out of stock (stock_quantity <= 0)
+        const stock = s.medications?.stock_quantity;
+        if (stock !== undefined && stock !== null && stock <= 0) {
+          return;
+        }
+
         if (appliesToDate(s, today)) {
           const hr = parseInt(s.scheduled_time.split(":")[0]) || 8;
           const timeLabel = hr < 11 ? "Morning" : hr <= 15 ? "Afternoon" : hr <= 18 ? "Evening" : "Night";
@@ -142,6 +148,11 @@ export default function ComplianceLogsPage() {
         
         let scheduledCount = 0;
         (scheduleData || []).forEach((s: any) => {
+           // Exclude schedules where the medication is out of stock (stock_quantity <= 0)
+           const stock = s.medications?.stock_quantity;
+           if (stock !== undefined && stock !== null && stock <= 0) {
+             return;
+           }
            if (appliesToDate(s, d)) scheduledCount++;
         });
 
@@ -208,9 +219,11 @@ export default function ComplianceLogsPage() {
           .single();
           
         if (medData && medData.stock_quantity > 0) {
+          const newStock = medData.stock_quantity - 1;
+          const finalStock = newStock <= 0 ? -1 : newStock;
           await supabase
             .from("medications")
-            .update({ stock_quantity: medData.stock_quantity - 1 })
+            .update({ stock_quantity: finalStock })
             .eq("id", med.medication_id);
         }
       }

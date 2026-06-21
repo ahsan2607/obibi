@@ -34,9 +34,13 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({ medication, onDe
           <span className="text-gray-500">Form:</span>
           <span className="font-medium text-gray-800 capitalize">{medication.form}</span>
         </div>
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
           <span className="text-gray-500">Stock:</span>
-          <span className="font-medium text-gray-800">{medication.stock_quantity} {medication.stock_unit}</span>
+          {medication.stock_quantity <= 0 ? (
+            <span className="font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded text-xs">Habis</span>
+          ) : (
+            <span className="font-medium text-gray-800">{medication.stock_quantity} {medication.stock_unit}</span>
+          )}
         </div>
         {medication.side_effects && (
           <div className="flex flex-col gap-1 mt-2">

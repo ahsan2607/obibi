@@ -34,10 +34,12 @@ interface MedicationScheduleWithMedication {
   medications?: {
     name?: string;
     description?: string;
+    stock_quantity?: number;
   };
   medication?: {
     name?: string;
     description?: string;
+    stock_quantity?: number;
   };
 }
 
@@ -79,7 +81,7 @@ export default function MedicationSchedulesPage() {
 
       const { data, error: fetchError } = await supabase
         .from("medication_schedules")
-        .select("*, medications(name)")
+        .select("*, medications(name, description, stock_quantity)")
         .eq("patient_id", user.id)
         .order("start_date", { ascending: true })
         .order("scheduled_time", { ascending: true });
@@ -90,7 +92,14 @@ export default function MedicationSchedulesPage() {
         return;
       }
 
-      const mappedSchedules = ((data as unknown as MedicationScheduleWithMedication[]) || []).map((item) => {
+      const mappedSchedules = ((data as unknown as MedicationScheduleWithMedication[]) || [])
+        .filter((item) => {
+          const medication = item.medications || item.medication || null;
+          const stock = medication?.stock_quantity;
+          // Only show schedule if stock is not loaded, or has stock > 0
+          return stock === undefined || stock === null || stock > 0;
+        })
+        .map((item) => {
         try {
           // scheduled_time stored as "HH:MM:SS" or "HH:MM"
           const scheduledTimeStr = item.scheduled_time ? String(item.scheduled_time) : "00:00";
@@ -366,6 +375,76 @@ export default function MedicationSchedulesPage() {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && activeTab === "all" && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">All Medication Reminders</h3>
+            <div className="space-y-4">
+              {schedules.length > 0 ? (
+                schedules.map((schedule, idx) => {
+                  const colorIndex = idx % colorPalette.length;
+                  return (
+                    <div key={schedule.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b border-gray-100 last:border-b-0">
+                      <ScheduleCard
+                        medicineName={schedule.medicine_name}
+                        description={schedule.description}
+                        dosage={schedule.dosage}
+                        time={schedule.time}
+                        bgClass={colorPalette[colorIndex].bg}
+                        borderClass={colorPalette[colorIndex].border}
+                      />
+                      <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded-full self-start sm:self-center">
+                        Starts: {new Date(schedule.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-center text-gray-500 py-8">No medications scheduled.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && activeTab === "upcoming" && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Upcoming Reminders</h3>
+            <div className="space-y-4">
+              {schedules.filter((s) => {
+                const today = new Date();
+                const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+                return s.dateISO >= todayISO;
+              }).length > 0 ? (
+                schedules
+                  .filter((s) => {
+                    const today = new Date();
+                    const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+                    return s.dateISO >= todayISO;
+                  })
+                  .map((schedule, idx) => {
+                    const colorIndex = idx % colorPalette.length;
+                    return (
+                      <div key={schedule.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b border-gray-100 last:border-b-0">
+                        <ScheduleCard
+                          medicineName={schedule.medicine_name}
+                          description={schedule.description}
+                          dosage={schedule.dosage}
+                          time={schedule.time}
+                          bgClass={colorPalette[colorIndex].bg}
+                          borderClass={colorPalette[colorIndex].border}
+                        />
+                        <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full self-start sm:self-center">
+                          {new Date(schedule.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </span>
+                      </div>
+                    );
+                  })
+              ) : (
+                <p className="text-center text-gray-500 py-8">No upcoming medications scheduled.</p>
+              )}
             </div>
           </div>
         )}
