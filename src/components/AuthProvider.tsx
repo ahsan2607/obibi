@@ -1,9 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState, useRef } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Patient } from "@/lib/types";
-import { User as SupabaseUser } from "@supabase/supabase-js";
+import { User as SupabaseUser, Subscription } from "@supabase/supabase-js";
 
 type AuthContextType = {
   user: Patient | null;
@@ -14,48 +14,26 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+/**
+ * AuthProvider component that manages the authentication state of the application.
+ * 
+ * Initial state: Sets up Supabase auth listener and checks for existing session.
+ * Final state: Provides the authentication context (user, loading, logout) to all children.
+ */
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<Patient | null>(null);
+  const [sessionUser, setSessionUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const initRef = useRef(false);
 
-  // Helper function to fetch full Patient data from your table
-  const loadPatientData = useCallback(
-    async (supabaseUser: SupabaseUser) => {
-      try {
-        const { data: patientData, error } = await supabase
-          .from("patients")
-          .select("*")
-          .eq("id", supabaseUser.id)
-          .single();
-
-        if (error) {
-          console.error("Error fetching patient data:", error);
-          // Update fallback to use 'name' instead of 'nama'
-          setUser({
-            id: supabaseUser.id,
-            email: supabaseUser.email!,
-            name: supabaseUser.user_metadata?.name || supabaseUser.email?.split("@")[0] || "",
-          }); 
-        } else {
-          setUser(patientData); 
-        }
-      } catch (err) {
-        console.error("Unexpected error loading patient data:", err);
-        setUser(null);
-      }
-    },
-    []
-  );
-
-  // Listen to Supabase auth state changes
   useEffect(() => {
     let mounted = true;
-    let authSubscription: any = null;
+    let authSubscription: Subscription | null = null;
 
+    /**
+     * Initializes authentication by checking the current session and subscribing to auth state changes.
+     */
     const initializeAuth = async () => {
-      console.log('[AuthProvider] Initializing auth with supabase client:', !!supabase);
-      // Prevent strict mode rapid re-firing of getSession
       if (initRef.current) return;
       initRef.current = true;
       
@@ -63,26 +41,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession();
         if (!mounted) return;
         
-        if (session) {
-          await loadPatientData(session.user);
+        if (session?.user) {
+          setSessionUser(session.user);
         } else {
-          setUser(null);
+          setSessionUser(null);
+          setLoading(false);
         }
       } catch (err) {
         console.warn("Ignored Auth getSession error", err);
-      } finally {
         if (mounted) setLoading(false);
       }
 
-      // ONLY subscribe after getSession completes to avoid concurrent Storage Locks!
       if (!mounted) return;
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
         if (!mounted) return;
-        if (event === "INITIAL_SESSION") return; // We already fetched it
+        if (event === "INITIAL_SESSION") return; 
 
         if (session?.user) {
-          await loadPatientData(session.user);
+          setSessionUser(session.user);
         } else {
+          setSessionUser(null);
           setUser(null);
         }
       });
@@ -97,21 +75,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         authSubscription.unsubscribe();
       }
     };
-  }, [loadPatientData]);
+  }, []);
 
+  // Separate effect to load patient data when session user changes,
+  // preventing auth listener locks/deadlocks.
+  useEffect(() => {
+    let active = true;
+
+    const fetchPatient = async () => {
+      if (!sessionUser) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const { data: patientData, error } = await supabase
+          .from("patients")
+          .select("*")
+          .eq("id", sessionUser.id)
+          .single();
+
+        if (!active) return;
+
+        if (error) {
+          console.error("Error fetching patient data:", error);
+          setUser({
+            id: sessionUser.id,
+            email: sessionUser.email!,
+            name: sessionUser.user_metadata?.name || sessionUser.email?.split("@")[0] || "",
+          }); 
+        } else {
+          setUser(patientData as Patient); 
+        }
+      } catch (err) {
+        console.error("Unexpected error loading patient data:", err);
+        if (active) setUser(null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    fetchPatient();
+
+    return () => {
+      active = false;
+    };
+  }, [sessionUser]);
+
+  /**
+   * Manually sets the user data in the context.
+   * 
+   * @param userData - The patient data to set.
+   */
   const login = (userData: Patient) => {
     setUser(userData);
   };
 
-
+  /**
+   * Signs the user out of Supabase and clears the user state.
+   */
   const logout = async () => {
     await supabase.auth.signOut();
+    setSessionUser(null);
     setUser(null);
   };
 
   return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
 }
 
+/**
+ * Custom hook to access the authentication context.
+ * 
+ * @returns The AuthContextType object.
+ */
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

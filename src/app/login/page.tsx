@@ -2,9 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pill } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { AuthHeader } from "@/components/auth/AuthHeader";
+import { AuthForm } from "@/components/auth/AuthForm";
 
+/**
+ * LoginPage component that handles user authentication (login and registration).
+ * 
+ * Initial state: Manages isLogin, email, password, name, error, and isLoading states.
+ * Final state: Renders the AuthHeader and AuthForm components, and handles navigation after successful authentication.
+ */
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -14,12 +21,16 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  /**
+   * Handles the form submission for both login and registration.
+   * 
+   * @param e - The form event.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
-    // page.tsx (Partial)
     try {
       if (isLogin) {
         const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
@@ -29,7 +40,7 @@ export default function LoginPage() {
           email,
           password,
           options: {
-            data: { name: name }, // Ensure this key matches your SQL trigger ->>'name'
+            data: { name: name },
           },
         });
 
@@ -43,9 +54,10 @@ export default function LoginPage() {
 
       router.push("/dashboard");
       router.refresh();
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message || "Authentication failed.");
+      const errorMessage = err instanceof Error ? err.message : "Authentication failed.";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -53,80 +65,20 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center text-blue-600">
-          <Pill size={48} />
-        </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Health Assistant</h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          {isLogin ? "Sign in to your account" : "Register a new patient account"}
-        </p>
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {!isLogin && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Nama</label>
-                <div className="mt-1">
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <div className="mt-1">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <div className="mt-1">
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
-                />
-              </div>
-            </div>
-
-            {error && <div className="text-red-500 text-sm bg-red-50 p-2 rounded-md">{error}</div>}
-
-            <div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300"
-              >
-                {isLoading ? "Processing..." : isLogin ? "Sign in" : "Register"}
-              </button>
-            </div>
-          </form>
-
-          <div className="mt-6 text-center">
-            <button onClick={() => setIsLogin(!isLogin)} className="text-sm text-blue-600 hover:text-blue-500">
-              {isLogin ? "Don't have an account? Register" : "Already have an account? Sign in"}
-            </button>
-          </div>
-        </div>
-      </div>
+      <AuthHeader isLogin={isLogin} />
+      <AuthForm
+        isLogin={isLogin}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        name={name}
+        setName={setName}
+        error={error}
+        isLoading={isLoading}
+        handleSubmit={handleSubmit}
+        toggleMode={() => setIsLogin(!isLogin)}
+      />
     </div>
   );
 }

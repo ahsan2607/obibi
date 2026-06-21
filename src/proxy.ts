@@ -3,6 +3,12 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
+/**
+ * Middleware function that handles authentication and session management for protected routes.
+ * 
+ * Initial state: Receives the incoming request.
+ * Final state: Redirects to login if unauthenticated on a protected path, otherwise proceeds and manages session cookies.
+ */
 export async function proxy(request: NextRequest) {
   // Create a response object so we can modify cookies
   const response = NextResponse.next({

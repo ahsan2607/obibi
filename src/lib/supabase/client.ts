@@ -1,6 +1,13 @@
 import { createBrowserClient } from '@supabase/ssr';
+import { SupabaseClient } from '@supabase/supabase-js';
 
-export function createClient() {
+/**
+ * Creates and returns a Supabase browser client, ensuring a single instance is used.
+ * 
+ * Initial state: Checks for environment variables and existing global instances.
+ * Final state: Returns a configured SupabaseClient for browser usage.
+ */
+export function createClient(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -11,7 +18,7 @@ export function createClient() {
   }
 
   // Use globalThis for a truly robust singleton across all environments and HMR
-  const globalSupabase = globalThis as any;
+  const globalSupabase = globalThis as unknown as { supabaseBrowserClient?: SupabaseClient };
   
   if (typeof window !== 'undefined') {
     if (globalSupabase.supabaseBrowserClient) {
@@ -28,16 +35,12 @@ export function createClient() {
       detectSessionInUrl: true,
       lockType: 'custom',
       async acquireLock() {
-        // console.log('[Supabase] acquireLock (bypass)');
         return true;
       },
       async releaseLock() {
-        // console.log('[Supabase] releaseLock');
       },
     },
-  });
-
-
+  } as any);
 
   if (typeof window !== 'undefined') {
     globalSupabase.supabaseBrowserClient = client;
@@ -46,5 +49,4 @@ export function createClient() {
   return client;
 }
 
-export const supabase = typeof window !== 'undefined' ? createClient() : null;
-
+export const supabase = typeof window !== 'undefined' ? createClient() : (null as unknown as SupabaseClient);

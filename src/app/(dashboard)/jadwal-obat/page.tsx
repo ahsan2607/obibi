@@ -2,18 +2,43 @@
 
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
-import { ChevronLeft, ChevronRight, Loader, AlertCircle, Bell, Pill, TrendingUp, Clock } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Loader, AlertCircle, Bell, Pill, TrendingUp, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { StatCard } from "@/components/schedule/StatCard";
+import { ScheduleCard } from "@/components/schedule/ScheduleCard";
 
 // Types
-interface UI_Schedule {
+interface UISchedule {
   id: string;
   medicine_name: string;
+  description?: string;
   dosage: string;
   time: string;
   date: string;
   dateISO: string;
   user_id: string;
+}
+
+interface MedicationScheduleWithMedication {
+  id: string;
+  patient_id: string;
+  medication_id: string;
+  scheduled_time: string;
+  dosage_quantity?: number;
+  dosage_unit?: string;
+  dosage?: string;
+  dosis?: string;
+  start_date: string;
+  end_date?: string;
+  instructions?: string;
+  medications?: {
+    name?: string;
+    description?: string;
+  };
+  medication?: {
+    name?: string;
+    description?: string;
+  };
 }
 
 // Pastel color palette with thick left border
@@ -28,22 +53,24 @@ const colorPalette = [
   { bg: "bg-amber-50", border: "border-l-amber-500" },
 ];
 
+/**
+ * MedicationSchedulesPage component that displays the user's medication schedule.
+ *
+ * Initial state: Fetches medication schedules from Supabase.
+ * Final state: Renders stat cards, navigation tabs, and a calendar/list view of schedules.
+ */
 export default function MedicationSchedulesPage() {
   const { user } = useAuth();
-  const [schedules, setSchedules] = useState<UI_Schedule[]>([]);
+  const [schedules, setSchedules] = useState<UISchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeTab, setActiveTab] = useState<"calendar" | "all" | "upcoming">("calendar");
 
-  // Fetch schedules from Supabase
-  useEffect(() => {
-    if (user) {
-      fetchSchedules();
-    }
-  }, [user]);
-
-  const fetchSchedules = async () => {
+  /**
+   * Fetches medication schedules for the current user.
+   */
+  const fetchSchedules = useCallback(async () => {
     if (!user?.id) return;
 
     try {
@@ -57,14 +84,13 @@ export default function MedicationSchedulesPage() {
         .order("start_date", { ascending: true })
         .order("scheduled_time", { ascending: true });
 
-
       if (fetchError) {
         console.error("Fetch error:", fetchError);
         setError("Failed to load schedules. Please try again.");
         return;
       }
 
-      const mappedSchedules = (data || []).map((item: any) => {
+      const mappedSchedules = ((data as unknown as MedicationScheduleWithMedication[]) || []).map((item) => {
         try {
           // scheduled_time stored as "HH:MM:SS" or "HH:MM"
           const scheduledTimeStr = item.scheduled_time ? String(item.scheduled_time) : "00:00";
@@ -82,15 +108,19 @@ export default function MedicationSchedulesPage() {
 
           // medication relation may be returned as `medications` or `medication` depending on relationship
           const medication = item.medications || item.medication || null;
-          const medicineName = medication?.name;
+          const medicineName = medication?.name || "Unknown Medication";
+          const medicineDescription = medication?.description || "";
 
-          // dosis column contains dosage text (per DB schema)
-          const dosage = item.dosis || item.dosage || "-";
+          const dosageText =
+            item.dosage_quantity !== undefined && item.dosage_quantity !== null
+              ? `${item.dosage_quantity} ${item.dosage_unit || ""}`.trim()
+              : item.dosis || item.dosage || "-";
 
           return {
             id: String(item.id),
-            medicine_name: medicineName || "Unknown Medication",
-            dosage,
+            medicine_name: medicineName,
+            description: medicineDescription,
+            dosage: dosageText,
             time,
             date,
             dateISO,
@@ -101,6 +131,7 @@ export default function MedicationSchedulesPage() {
           return {
             id: String(item.id) || "unknown",
             medicine_name: item.medications?.name || item.medication?.name || "Unknown Medication",
+            description: item.medications?.description || item.medication?.description || "",
             dosage: item.dosis || item.dosage || "-",
             time: "00.00",
             date: "",
@@ -117,8 +148,18 @@ export default function MedicationSchedulesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
+  // Fetch schedules from Supabase
+  useEffect(() => {
+    if (user) {
+      fetchSchedules();
+    }
+  }, [fetchSchedules, user]);
+
+  /**
+   * Filters and returns schedules for the currently selected date.
+   */
   const getSchedulesForSelectedDate = () => {
     const year = currentDate.getFullYear();
     const month = String(currentDate.getMonth() + 1).padStart(2, "0");
@@ -179,88 +220,52 @@ export default function MedicationSchedulesPage() {
 
       <div className="px-4 md:px-6 py-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">Active Reminders</p>
-                <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">{stats.active}</p>
-              </div>
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Bell size={24} className="text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">Today's Dosage</p>
-                <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">{stats.today}</p>
-              </div>
-              <div className="bg-green-100 p-3 rounded-full">
-                <Pill size={24} className="text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">Compliance Rate</p>
-                <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">{stats.compliance}%</p>
-              </div>
-              <div className="bg-purple-100 p-3 rounded-full">
-                <TrendingUp size={24} className="text-purple-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">Upcoming</p>
-                <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">{stats.upcoming}</p>
-              </div>
-              <div className="bg-orange-100 p-3 rounded-full">
-                <Clock size={24} className="text-orange-600" />
-              </div>
-            </div>
-          </div>
+          <StatCard
+            label="Active Reminders"
+            value={stats.active}
+            icon={Bell}
+            iconBgClass="bg-blue-100"
+            iconColorClass="text-blue-600"
+          />
+          <StatCard
+            label="Today's Dosage"
+            value={stats.today}
+            icon={Pill}
+            iconBgClass="bg-green-100"
+            iconColorClass="text-green-600"
+          />
+          <StatCard
+            label="Compliance Rate"
+            value={`${stats.compliance}%`}
+            icon={TrendingUp}
+            iconBgClass="bg-purple-100"
+            iconColorClass="text-purple-600"
+          />
+          <StatCard
+            label="Upcoming"
+            value={stats.upcoming}
+            icon={Clock}
+            iconBgClass="bg-orange-100"
+            iconColorClass="text-orange-600"
+          />
         </div>
       </div>
 
       <div className="px-4 md:px-6 border-b border-gray-200 bg-white">
         <div className="flex gap-0">
-          <button
-            onClick={() => setActiveTab("calendar")}
-            className={`px-4 md:px-6 py-3 font-medium text-sm md:text-base border-b-2 transition ${
-              activeTab === "calendar"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            Calendar View
-          </button>
-          <button
-            onClick={() => setActiveTab("all")}
-            className={`px-4 md:px-6 py-3 font-medium text-sm md:text-base border-b-2 transition ${
-              activeTab === "all"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            All Reminders
-          </button>
-          <button
-            onClick={() => setActiveTab("upcoming")}
-            className={`px-4 md:px-6 py-3 font-medium text-sm md:text-base border-b-2 transition ${
-              activeTab === "upcoming"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            Upcoming
-          </button>
+          {(["calendar", "all", "upcoming"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 md:px-6 py-3 font-medium text-sm md:text-base border-b-2 transition capitalize ${
+                activeTab === tab
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              {tab === "calendar" ? "Calendar View" : tab === "all" ? "All Reminders" : "Upcoming"}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -274,13 +279,10 @@ export default function MedicationSchedulesPage() {
 
         {error && (
           <div className="bg-white rounded-2xl shadow-sm border border-red-200 p-4 md:p-6 flex items-start gap-3">
-            <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-1" />
+            <AlertCircle size={20} className="text-red-600 shrink-0 mt-1" />
             <div>
               <p className="font-medium text-red-900">{error}</p>
-              <button
-                onClick={fetchSchedules}
-                className="text-sm text-red-600 hover:text-red-700 mt-2 underline"
-              >
+              <button onClick={fetchSchedules} className="text-sm text-red-600 hover:text-red-700 mt-2 underline">
                 Try again
               </button>
             </div>
@@ -293,15 +295,20 @@ export default function MedicationSchedulesPage() {
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Select Date</h3>
                 <div className="flex justify-between items-center mb-4">
-                  <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))} className="p-1 hover:bg-gray-100 rounded">
+                  <button
+                    onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+                    className="p-1 hover:bg-gray-100 rounded"
+                  >
                     <ChevronLeft size={18} />
                   </button>
                   <h4 className="text-sm font-semibold text-gray-900">{currentMonthFormatted}</h4>
-                  <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))} className="p-1 hover:bg-gray-100 rounded">
+                  <button
+                    onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+                    className="p-1 hover:bg-gray-100 rounded"
+                  >
                     <ChevronRight size={18} />
                   </button>
                 </div>
-                {/* Calendar Grid */}
                 <div className="grid grid-cols-7 gap-2">
                   {emptyDays.map((i) => (
                     <div key={`empty-${i}`} />
@@ -343,19 +350,15 @@ export default function MedicationSchedulesPage() {
                     selectedSchedules.map((schedule, idx) => {
                       const colorIndex = idx % colorPalette.length;
                       return (
-                        <div key={schedule.id} className={`${colorPalette[colorIndex].bg} border-l-4 ${colorPalette[colorIndex].border} rounded-lg p-4 shadow-sm`}>
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <p className="text-base font-bold text-gray-900">{schedule.medicine_name}</p>
-                              <p className="text-sm text-gray-600 mt-1">{schedule.dosage}</p>
-                            </div>
-                            <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Active</div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock size={14} className="text-gray-500" />
-                            <p className="text-sm text-gray-600">at {schedule.time}</p>
-                          </div>
-                        </div>
+                        <ScheduleCard
+                          key={schedule.id}
+                          medicineName={schedule.medicine_name}
+                          description={schedule.description}
+                          dosage={schedule.dosage}
+                          time={schedule.time}
+                          bgClass={colorPalette[colorIndex].bg}
+                          borderClass={colorPalette[colorIndex].border}
+                        />
                       );
                     })
                   ) : (

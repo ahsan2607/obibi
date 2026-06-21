@@ -38,7 +38,7 @@ export type ChatMessage = {
   role: 'user' | 'assistant' | 'system';
   content: string;
   created_at: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 };
 
 export type DrugInteraction = {

@@ -24,3 +24,36 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+input, select, textarea {
+  color: #000000 !important;
+}
+
+@media print {
+  /* Hide sidebar, mobile header, and all action buttons */
+  aside,
+  nav,
+  button,
+  header,
+  .no-print,
+  [class*="Sidebar"],
+  [class*="MobileHeader"],
+  [class*="LogoutButton"] {
+    display: none !important;
+  }
+
+  /* Make main report layout take up the full print page without scrollbars */
+  main,
+  body,
+  html,
+  .flex-1 {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 20px !important;
+    margin: 0 !important;
+    background: white !important;
+    color: black !important;
+  }
+}
