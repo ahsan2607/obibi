@@ -12,6 +12,7 @@ import { CalendarPicker } from "@/components/schedule/CalendarPicker";
 interface UISchedule {
   id: string;
   medicine_name: string;
+  description?: string;
   dosage: string;
   time: string;
   date: string;
@@ -31,6 +32,7 @@ interface MedicationScheduleWithMedication {
   instructions?: string;
   medications: {
     name: string;
+    description?: string;
   };
 }
 
@@ -98,10 +100,12 @@ export default function MedicationSchedulesPage() {
 
           const medication = item.medications;
           const medicineName = medication?.name;
+          const medicineDescription = medication?.description || "";
 
           return {
             id: String(item.id),
             medicine_name: medicineName || "Unknown Medication",
+            description: medicineDescription,
             dosage: item.dosage_quantity ? `${item.dosage_quantity} ${item.dosage_unit || ""}` : "-",
             time,
             date,
@@ -113,6 +117,7 @@ export default function MedicationSchedulesPage() {
           return {
             id: String(item.id) || "unknown",
             medicine_name: item.medications?.name || "Unknown Medication",
+            description: "",
             dosage: "-",
             time: "00.00",
             date: "",
@@ -279,6 +284,7 @@ export default function MedicationSchedulesPage() {
                         <ScheduleCard
                           key={schedule.id}
                           medicineName={schedule.medicine_name}
+                          description={schedule.description}
                           dosage={schedule.dosage}
                           time={schedule.time}
                           bgClass={colorPalette[colorIndex].bg}

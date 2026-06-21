@@ -3,6 +3,7 @@ import { Clock } from "lucide-react";
 
 interface ScheduleCardProps {
   medicineName: string;
+  description?: string;
   dosage: string;
   time: string;
   bgClass: string;
@@ -17,6 +18,7 @@ interface ScheduleCardProps {
  */
 export const ScheduleCard: React.FC<ScheduleCardProps> = ({
   medicineName,
+  description,
   dosage,
   time,
   bgClass,
@@ -27,6 +29,7 @@ export const ScheduleCard: React.FC<ScheduleCardProps> = ({
       <div className="flex justify-between items-start mb-3">
         <div>
           <p className="text-base font-bold text-gray-900">{medicineName}</p>
+          {description && <p className="text-xs text-gray-600 italic mt-0.5">{description}</p>}
           <p className="text-sm text-gray-600 mt-1">{dosage}</p>
         </div>
         <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Active</div>

@@ -44,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({isOpen, setIsOpen, toggleSideba
           .select("id, title")
           .eq("patient_id", user.id)
           .order("created_at", { ascending: false });
-        if (data) setChats(data.map((item) => ({ id: item.id })));
+        if (data) setChats(data.map((item: any) => ({ id: item.id })));
       };
       fetchChats();
     }

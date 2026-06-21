@@ -1,4 +1,5 @@
-import { createBrowserClient, SupabaseClient } from '@supabase/ssr';
+import { createBrowserClient } from '@supabase/ssr';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Creates and returns a Supabase browser client, ensuring a single instance is used.
@@ -39,7 +40,7 @@ export function createClient(): SupabaseClient {
       async releaseLock() {
       },
     },
-  });
+  } as any);
 
   if (typeof window !== 'undefined') {
     globalSupabase.supabaseBrowserClient = client;

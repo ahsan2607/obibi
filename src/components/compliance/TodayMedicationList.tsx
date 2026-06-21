@@ -4,6 +4,7 @@ import { AlertCircle, Loader, CheckCircle2, Circle } from "lucide-react";
 export interface TodayMedication {
   id: string;
   schedule_id: string;
+  medication_id?: string;
   name: string;
   dosage: string;
   time: string;

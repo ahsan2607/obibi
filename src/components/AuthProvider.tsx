@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState, useRef } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Patient } from "@/lib/types";
 import { User as SupabaseUser, Subscription } from "@supabase/supabase-js";
@@ -22,40 +22,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  */
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<Patient | null>(null);
+  const [sessionUser, setSessionUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const initRef = useRef(false);
-
-  /**
-   * Fetches full patient data from the 'patients' table based on the Supabase user ID.
-   * 
-   * @param supabaseUser - The Supabase user object.
-   */
-  const loadPatientData = useCallback(
-    async (supabaseUser: SupabaseUser) => {
-      try {
-        const { data: patientData, error } = await supabase
-          .from("patients")
-          .select("*")
-          .eq("id", supabaseUser.id)
-          .single();
-
-        if (error) {
-          console.error("Error fetching patient data:", error);
-          setUser({
-            id: supabaseUser.id,
-            email: supabaseUser.email!,
-            name: supabaseUser.user_metadata?.name || supabaseUser.email?.split("@")[0] || "",
-          }); 
-        } else {
-          setUser(patientData as Patient); 
-        }
-      } catch (err) {
-        console.error("Unexpected error loading patient data:", err);
-        setUser(null);
-      }
-    },
-    []
-  );
 
   useEffect(() => {
     let mounted = true;
@@ -72,25 +41,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!mounted) return;
         
-        if (session) {
-          await loadPatientData(session.user);
+        if (session?.user) {
+          setSessionUser(session.user);
         } else {
-          setUser(null);
+          setSessionUser(null);
+          setLoading(false);
         }
       } catch (err) {
         console.warn("Ignored Auth getSession error", err);
-      } finally {
         if (mounted) setLoading(false);
       }
 
       if (!mounted) return;
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
         if (!mounted) return;
         if (event === "INITIAL_SESSION") return; 
 
         if (session?.user) {
-          await loadPatientData(session.user);
+          setSessionUser(session.user);
         } else {
+          setSessionUser(null);
           setUser(null);
         }
       });
@@ -105,7 +75,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         authSubscription.unsubscribe();
       }
     };
-  }, [loadPatientData]);
+  }, []);
+
+  // Separate effect to load patient data when session user changes,
+  // preventing auth listener locks/deadlocks.
+  useEffect(() => {
+    let active = true;
+
+    const fetchPatient = async () => {
+      if (!sessionUser) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const { data: patientData, error } = await supabase
+          .from("patients")
+          .select("*")
+          .eq("id", sessionUser.id)
+          .single();
+
+        if (!active) return;
+
+        if (error) {
+          console.error("Error fetching patient data:", error);
+          setUser({
+            id: sessionUser.id,
+            email: sessionUser.email!,
+            name: sessionUser.user_metadata?.name || sessionUser.email?.split("@")[0] || "",
+          }); 
+        } else {
+          setUser(patientData as Patient); 
+        }
+      } catch (err) {
+        console.error("Unexpected error loading patient data:", err);
+        if (active) setUser(null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    fetchPatient();
+
+    return () => {
+      active = false;
+    };
+  }, [sessionUser]);
 
   /**
    * Manually sets the user data in the context.
@@ -121,6 +138,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
    */
   const logout = async () => {
     await supabase.auth.signOut();
+    setSessionUser(null);
     setUser(null);
   };
 

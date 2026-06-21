@@ -1,6 +1,5 @@
 import React, { useRef } from "react";
 import { Paperclip, Send, X } from "lucide-react";
-import Image from "next/image";
 
 interface ChatInputProps {
   input: string;
@@ -42,7 +41,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     <div className="border-t border-gray-200 p-4 bg-white">
       {selectedImage && (
         <div className="max-w-4xl mx-auto mb-2 relative inline-block">
-          <Image src={selectedImage} alt="Preview" className="h-20 rounded-lg object-cover border border-gray-200" />
+          <img src={selectedImage} alt="Preview" className="h-20 rounded-lg object-cover border border-gray-200" />
           <button
             onClick={() => setSelectedImage(null)}
             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
