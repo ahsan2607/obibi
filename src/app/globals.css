@@ -57,3 +57,113 @@ input, select, textarea {
     color: black !important;
   }
 }
+
+/* ==========================================
+   Accessibility Toggles
+   ========================================== */
+
+/* 1. Font Size Scaling */
+html.accessibility-font-large {
+  font-size: 115% !important;
+}
+html.accessibility-font-xl {
+  font-size: 130% !important;
+}
+
+/* 2. Dyslexic-Friendly Font */
+body.accessibility-dyslexic,
+body.accessibility-dyslexic * {
+  font-family: "Comic Neue", "Comic Sans MS", system-ui, -apple-system, sans-serif !important;
+  letter-spacing: 0.08em !important;
+  word-spacing: 0.12em !important;
+  line-height: 1.65 !important;
+}
+
+/* 3. Reduced Motion */
+html.accessibility-reduced-motion,
+html.accessibility-reduced-motion * {
+  animation-delay: -1ms !important;
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* 4. Enhanced Focus Indicators */
+html.accessibility-enhanced-focus *:focus-visible {
+  outline: 4px solid #f59e0b !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px #000000 !important;
+}
+
+/* 5. Colorblind CSS Filters */
+html.accessibility-colorblind-protanopia {
+  filter: url(#protanopia) !important;
+}
+html.accessibility-colorblind-deuteranopia {
+  filter: url(#deuteranopia) !important;
+}
+html.accessibility-colorblind-tritanopia {
+  filter: url(#tritanopia) !important;
+}
+html.accessibility-colorblind-grayscale {
+  filter: grayscale(1) !important;
+}
+
+/* 6. High Contrast Mode */
+body.accessibility-high-contrast {
+  background-color: #000000 !important;
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+body.accessibility-high-contrast * {
+  background-color: #000000 !important;
+  background: #000000 !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+/* High contrast links and buttons */
+body.accessibility-high-contrast a,
+body.accessibility-high-contrast button {
+  color: #ffff00 !important;
+  border: 2px solid #ffffff !important;
+  background-color: #000000 !important;
+  text-decoration: underline !important;
+}
+
+body.accessibility-high-contrast a:hover,
+body.accessibility-high-contrast button:hover,
+body.accessibility-high-contrast a:focus,
+body.accessibility-high-contrast button:focus {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  text-decoration: none !important;
+}
+
+body.accessibility-high-contrast a *,
+body.accessibility-high-contrast button * {
+  color: inherit !important;
+  background: transparent !important;
+}
+
+/* High contrast form inputs */
+body.accessibility-high-contrast input,
+body.accessibility-high-contrast select,
+body.accessibility-high-contrast textarea {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}
+
+body.accessibility-high-contrast input::placeholder,
+body.accessibility-high-contrast textarea::placeholder {
+  color: #cccccc !important;
+  opacity: 1 !important;
+}
+
