@@ -3,6 +3,8 @@
 % === TEMA ===
 \usetheme{Madrid}
 \usecolortheme{default}
+\setbeamertemplate{footline}{}
+\setbeamertemplate{navigation symbols}{}
 
 % === PAKET TAMBAHAN ===
 \usepackage[utf8]{inputenc}
@@ -183,47 +185,9 @@
 % --- SLIDE: USE CASE DIAGRAM ---
 \begin{frame}{Use Case Diagram}
     \centering
-    \begin{tikzpicture}[scale=0.52, every node/.style={transform shape}]
-          % Actors
-          \draw[fill=lightblue] (0, 2) circle (0.3);
-          \draw (0, 1.7) -- (0, 0.7);
-          \draw (-0.5, 1.4) -- (0.5, 1.4);
-          \draw (0, 0.7) -- (-0.3, 0);
-          \draw (0, 0.7) -- (0.3, 0);
-          \node at (0, -0.3) {\small Pasien};
-
-          \draw[fill=lightblue] (10, 2) circle (0.3);
-          \draw (10, 1.7) -- (10, 0.7);
-          \draw (9.5, 1.4) -- (10.5, 1.4);
-          \draw (10, 0.7) -- (9.7, 0);
-          \draw (10, 0.7) -- (10.3, 0);
-          \node at (10, -0.3) {\small Admin};
-
-          % System Boundary
-          \draw (2.5, -3) rectangle (7.5, 5);
-          \node at (5, 4.7) {\textbf{Aplikasi Obibi}};
-
-          % Use Cases
-          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc1) at (5, 3.8) {\tiny Autentikasi Pengguna};
-          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc2) at (5, 2.7) {\tiny Manajemen Data Obat};
-          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc3) at (5, 1.6) {\tiny Penjadwalan Konsumsi};
-          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc4) at (5, 0.5) {\tiny Deteksi Interaksi};
-          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc5) at (5, -0.6) {\tiny Konsultasi AI Assistant};
-          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc6) at (5, -1.7) {\tiny Laporan \& Ekspor};
-
-          % Associations
-          \draw (0.3, 1.4) -- (uc1.west);
-          \draw (0.3, 1.4) -- (uc2.west);
-          \draw (0.3, 1.4) -- (uc3.west);
-          \draw (0.3, 1.4) -- (uc4.west);
-          \draw (0.3, 1.4) -- (uc5.west);
-          \draw (0.3, 1.4) -- (uc6.west);
-
-          \draw (9.7, 1.4) -- (uc1.east);
-          \draw (9.7, 1.4) -- (uc2.east);
-    \end{tikzpicture}
+    \includegraphics[height=0.55\textheight, keepaspectratio]{usecase.jpeg}
     \begin{flushright}
-        \tiny{\textit{Sumber: SKPL \& DPPL Aplikasi Obibi}}
+        \tiny{\textit{Sumber: DPPL Aplikasi Obibi}}
     \end{flushright}
 \end{frame}
 
@@ -583,7 +547,7 @@
     \textbf{Input Jadwal Obat}
     \vspace{0.2cm}
     
-    \includegraphics[height=0.55\textheight, keepaspectratio]{jadwal_obat.jpeg}
+    \includegraphics[height=0.55\textheight, keepaspectratio]{input_obat.png}
     \begin{flushright}
         \tiny{\textit{Sumber: DUPL Aplikasi Obibi}}
     \end{flushright}
