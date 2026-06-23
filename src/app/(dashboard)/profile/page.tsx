@@ -4,7 +4,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { User, Mail, Save, ArrowLeft, Check, AlertCircle } from "lucide-react";
+import { User, Mail, Save, ArrowLeft, Check, AlertCircle, Lock } from "lucide-react";
 
 // Preset gradients for avatars
 const PRESET_AVATARS = [
@@ -31,6 +31,74 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Password renewal state variables
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwdSaving, setPwdSaving] = useState(false);
+  const [pwdSuccess, setPwdSuccess] = useState(false);
+  const [pwdError, setPwdError] = useState<string | null>(null);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdError(null);
+    setPwdSuccess(false);
+
+    if (!user) {
+      setPwdError("User session not found.");
+      return;
+    }
+
+    if (!oldPassword) {
+      setPwdError("Please enter your current password.");
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      setPwdError("New password must be at least 6 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwdError("New passwords do not match.");
+      return;
+    }
+
+    setPwdSaving(true);
+
+    try {
+      // 1. Verify old password by attempting to sign in
+      const { error: authCheckError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: oldPassword
+      });
+      if (authCheckError) {
+        throw new Error("Incorrect current password. Please try again.");
+      }
+
+      // 2. Update password in Supabase Auth
+      const { error: authUpdateError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      if (authUpdateError) throw authUpdateError;
+
+      // 3. Update password column in patients table to keep it synced
+      const { error: dbError } = await supabase
+        .from("patients")
+        .update({ password: newPassword })
+        .eq("id", user.id);
+      if (dbError) throw dbError;
+
+      setPwdSuccess(true);
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      console.error("Failed to change password:", err);
+      setPwdError(err.message || "Failed to update password. Please try again.");
+    } finally {
+      setPwdSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -308,6 +376,86 @@ export default function ProfilePage() {
                     <>
                       <Save size={16} />
                       Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            {/* Change Password Card */}
+            <form onSubmit={handlePasswordChange} className="mt-8 bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+              <h2 className="text-lg font-bold text-gray-800 tracking-tight border-b border-gray-100 pb-3 flex items-center gap-2">
+                <Lock size={18} className="text-blue-600 animate-pulse" />
+                Change Password
+              </h2>
+
+              {pwdError && (
+                <div className="flex items-center gap-2 p-4 bg-red-50 text-red-700 rounded-2xl text-sm border border-red-100">
+                  <AlertCircle size={18} className="shrink-0" />
+                  <span>{pwdError}</span>
+                </div>
+              )}
+
+              {pwdSuccess && (
+                <div className="flex items-center gap-2 p-4 bg-emerald-50 text-emerald-700 rounded-2xl text-sm border border-emerald-100">
+                  <Check size={18} className="shrink-0" />
+                  <span>Password updated successfully!</span>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 block">Current Password</label>
+                <input
+                  type="password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  placeholder="Enter your current password"
+                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm text-gray-800 bg-white"
+                  disabled={pwdSaving}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700 block">New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Min 6 characters"
+                    className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm text-gray-800 bg-white"
+                    disabled={pwdSaving}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700 block">Confirm New Password</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password"
+                    className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm text-gray-800 bg-white"
+                    disabled={pwdSaving}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-semibold flex items-center gap-2 shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={pwdSaving}
+                >
+                  {pwdSaving ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} />
+                      Update Password
                     </>
                   )}
                 </button>

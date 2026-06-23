@@ -97,10 +97,12 @@ export default function ChatSessionPage({ params }: { params: Promise<{ id: stri
           chatId: id, 
           message: userText,
           imageBase64: imageToSend,
-          history: updatedLogUser.map(msg => ({
-            role: msg.role === "user" ? "user" : "model",
-            text: msg.content
-          })),
+          history: updatedLogUser
+            .filter(msg => msg.role !== "system")
+            .map(msg => ({
+              role: msg.role === "user" ? "user" : "model",
+              text: msg.content
+            })),
           newlyAdded: newlyAdded
         }),
       });
@@ -109,6 +111,24 @@ export default function ChatSessionPage({ params }: { params: Promise<{ id: stri
       const resData = await res.json();
       
       let aiText = resData.text;
+
+      // ── STEP 1: Show AI response IMMEDIATELY & save messages to DB ──
+      // This ensures the conversation is visible and persisted even if
+      // action processing takes time or user refreshes.
+      const logsWithAiResponse: ChatMessage[] = [
+        ...updatedLogUser,
+        { role: "assistant", content: aiText }
+      ];
+      setChatLog(logsWithAiResponse);
+      setSending(false); // Stop showing loading dots immediately
+
+      // Save user + assistant messages to DB right away
+      await supabase.from("chat_messages").insert([
+        { chat_id: id, patient_id: user?.id, role: "user", content: logText, ai_id: aiId || 1 },
+        { chat_id: id, patient_id: user?.id, role: "assistant", content: aiText, ai_id: aiId || 1 }
+      ]);
+
+      // ── STEP 2: Process actions in the background ─────────────────
       const addedMeds: string[] = [];
 
       if (resData.extractedActions && resData.extractedActions.length > 0) {
@@ -240,35 +260,163 @@ export default function ChatSessionPage({ params }: { params: Promise<{ id: stri
               console.error("Failed to update schedule", updateError);
             }
           }
+
+          // ── ADD SCHEDULE to existing medication ──────────────────────
+          if (action.action === "add schedule") {
+            const medId = Number(action.medication_id);
+            const { data: schedData, error: schedError } = await supabase
+              .from("medication_schedules")
+              .insert([{
+                patient_id: user.id,
+                medication_id: medId,
+                scheduled_time: action.scheduled_time || "08:00",
+                dosis: action.dosis || "1 piece",
+                start_date: new Date().toISOString().split("T")[0],
+                instructions: action.instructions || "daily"
+              }])
+              .select("*, medications(name)")
+              .single();
+
+            if (!schedError && schedData) {
+              const medName = (schedData.medications as any)?.name || "Obat";
+              addedMeds.push(`jadwal ditambahkan: ${medName} pukul ${schedData.scheduled_time} [Jadwal ID: ${schedData.id}]`);
+              setNewlyAdded(prev => ({
+                ...prev,
+                schedules: [...prev.schedules, { id: schedData.id, time: schedData.scheduled_time, medication_id: schedData.medication_id }]
+              }));
+            } else {
+              console.error("Failed to add schedule", schedError);
+            }
+          }
+
+          // ── DELETE MEDICATION with cascade ───────────────────────────
+          if (action.action === "delete medication") {
+            const medId = Number(action.medication_id);
+            try {
+              // 1. Fetch schedules for this medication
+              const { data: schedules } = await supabase
+                .from("medication_schedules")
+                .select("id")
+                .eq("medication_id", medId);
+
+              const scheduleIds = schedules?.map(s => s.id) || [];
+
+              if (scheduleIds.length > 0) {
+                // 2. Delete reminders
+                await supabase.from("reminder").delete().in("jadwal_id", scheduleIds);
+                // 3. Delete compliance logs
+                await supabase.from("compliance_logs").delete().in("schedule_id", scheduleIds);
+                // 4. Delete schedules
+                await supabase.from("medication_schedules").delete().eq("medication_id", medId);
+              }
+
+              // 5. Delete medication
+              const { data: deletedMed, error: deleteError } = await supabase
+                .from("medications")
+                .delete()
+                .eq("id", medId)
+                .select("name")
+                .single();
+
+              if (!deleteError && deletedMed) {
+                addedMeds.push(`obat dihapus: ${deletedMed.name} (ID: ${medId}) beserta ${scheduleIds.length} jadwal terkait`);
+                // Clean from newlyAdded state too
+                setNewlyAdded(prev => ({
+                  medications: prev.medications.filter(m => m.id !== medId),
+                  schedules: prev.schedules.filter(s => s.medication_id !== medId)
+                }));
+              } else {
+                console.error("Failed to delete medication", deleteError);
+              }
+            } catch (err) {
+              console.error("Delete medication cascade failed", err);
+            }
+          }
+
+          // ── DELETE SCHEDULE with cascade ─────────────────────────────
+          if (action.action === "delete schedule") {
+            const schedId = Number(action.schedule_id);
+            try {
+              // 1. Delete reminders for this schedule
+              await supabase.from("reminder").delete().eq("jadwal_id", schedId);
+              // 2. Delete compliance logs for this schedule
+              await supabase.from("compliance_logs").delete().eq("schedule_id", schedId);
+              // 3. Delete the schedule itself
+              const { data: deletedSched, error: deleteError } = await supabase
+                .from("medication_schedules")
+                .delete()
+                .eq("id", schedId)
+                .select("*, medications(name)")
+                .single();
+
+              if (!deleteError && deletedSched) {
+                const medName = (deletedSched.medications as any)?.name || "Obat";
+                addedMeds.push(`jadwal dihapus: ${medName} pukul ${deletedSched.scheduled_time} (Jadwal ID: ${schedId})`);
+                setNewlyAdded(prev => ({
+                  ...prev,
+                  schedules: prev.schedules.filter(s => s.id !== schedId)
+                }));
+              } else {
+                console.error("Failed to delete schedule", deleteError);
+              }
+            } catch (err) {
+              console.error("Delete schedule cascade failed", err);
+            }
+          }
+
+          // ── ADD DRUG INTERACTION ─────────────────────────────────────
+          if (action.action === "add drug interaction") {
+            const { data: interactionData, error: interactionError } = await supabase
+              .from("drug_interactions")
+              .insert([{
+                patient_id: user.id,
+                medication_pair: [action.drug_1 || "Unknown", action.drug_2 || "Unknown"],
+                target_medication: action.drug_1 || "Unknown",
+                risk_level: action.risk_level || "Moderate",
+                finding_details: action.finding_details || "Dicatat melalui AI Assistant"
+              }])
+              .select()
+              .single();
+
+            if (!interactionError && interactionData) {
+              addedMeds.push(`interaksi obat ditambahkan: ${action.drug_1} ↔ ${action.drug_2} (risiko: ${action.risk_level || 'Moderate'}) [ID: ${interactionData.id}]`);
+            } else {
+              console.error("Failed to add drug interaction", interactionError);
+            }
+          }
+
+          // ── DELETE DRUG INTERACTION ──────────────────────────────────
+          if (action.action === "delete drug interaction") {
+            const interactionId = Number(action.interaction_id);
+            const { data: deletedInteraction, error: deleteError } = await supabase
+              .from("drug_interactions")
+              .delete()
+              .eq("id", interactionId)
+              .select("medication_pair, risk_level")
+              .single();
+
+            if (!deleteError && deletedInteraction) {
+              const pair = deletedInteraction.medication_pair || ["?", "?"];
+              addedMeds.push(`interaksi obat dihapus: ${pair[0]} ↔ ${pair[1]} (ID: ${interactionId})`);
+            } else {
+              console.error("Failed to delete drug interaction", deleteError);
+            }
+          }
         }
       }
 
-      const newLogs: ChatMessage[] = [
-        ...updatedLogUser,
-        { role: "assistant", content: aiText }
-      ];
+      // ── STEP 3: After actions complete, append system message ──────
       if (addedMeds.length > 0) {
-        newLogs.push({
-          role: "system",
-          content: `Assistant has automatically processed the following action(s): ${addedMeds.join(", ")}!`
-        });
-      }
-      setChatLog(newLogs);
-
-      const messagesToInsert = [
-        { chat_id: id, patient_id: user?.id, role: "user", content: logText, ai_id: aiId || 1 },
-        { chat_id: id, patient_id: user?.id, role: "assistant", content: aiText, ai_id: aiId || 1 }
-      ];
-      if (addedMeds.length > 0) {
-        messagesToInsert.push({
+        const systemContent = `Assistant has automatically processed the following action(s): ${addedMeds.join(", ")}!`;
+        setChatLog(prev => [...prev, { role: "system", content: systemContent }]);
+        await supabase.from("chat_messages").insert([{
           chat_id: id,
           patient_id: user?.id,
           role: "system",
-          content: `Assistant has automatically processed the following action(s): ${addedMeds.join(", ")}!`,
+          content: systemContent,
           ai_id: aiId || 1
-        });
+        }]);
       }
-      await supabase.from("chat_messages").insert(messagesToInsert);
 
     } catch (err) {
       console.error("Failed", err);

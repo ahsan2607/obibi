@@ -1,15 +1,26 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
-interface HistoryMessage {
-  text: string;
-  role: "user" | "assistant" | "model";
-}
+/**
+ * All action types the chatbot can emit as JSON.
+ * The system prompt instructs the LLM to output exactly one JSON array
+ * at the end of its response when a database mutation is needed.
+ */
+const ALL_ACTION_TYPES = [
+  "add to reminder database",
+  "update medication",
+  "update schedule",
+  "add schedule",
+  "delete medication",
+  "delete schedule",
+  "add drug interaction",
+  "delete drug interaction",
+] as const;
 
 /**
  * Handles POST requests for the chat API, communicating with the OpenRouter AI model.
- * Automatically injects the user's active database context (medications, schedules, logs)
- * into the system prompt to enable contextual medical and scheduling assistance.
+ * Automatically injects the user's active database context (medications, schedules, logs,
+ * drug interactions) into the system prompt to enable contextual medical and scheduling assistance.
  */
 export async function POST(req: Request) {
   try {
@@ -68,96 +79,145 @@ export async function POST(req: Request) {
         .eq("patient_id", patientId)
         .gte("logged_at", sevenDaysAgo.toISOString());
 
-      // Format patient context for the system prompt
-      contextString = "Patient Context:\n";
+      // 4. Fetch existing drug interactions
+      const { data: drugInteractions } = await supabase
+        .from("drug_interactions")
+        .select("id, medication_pair, target_medication, risk_level, finding_details")
+        .eq("patient_id", patientId);
+
+      // ── Build context string ──────────────────────────────────────────
+      contextString = "";
+
       if (patientProfile) {
-        contextString += `Patient Name: ${patientProfile.name || "Unknown"}\nPatient Email: ${patientProfile.email || "Unknown"}\n`;
+        contextString += `PASIEN: ${patientProfile.name || "Unknown"} (${patientProfile.email || "-"})\n`;
       }
-      
-      contextString += "\nAvailable Medications:\n";
+
+      // Medications - compact table format
+      contextString += "\nOBAT AKTIF:\n";
       if (medications && medications.length > 0) {
         medications.forEach(m => {
-          contextString += `- [ID: ${m.id}] ${m.name} (${m.form}): ${m.dosage || 'No dosage specified'}. Stock: ${m.stock_quantity} ${m.stock_unit}. Side effects: ${m.side_effects || 'None'}\n`;
+          contextString += `• ID:${m.id} | ${m.name} (${m.form}) | dosis:${m.dosage || '-'} | stok:${m.stock_quantity} ${m.stock_unit} | efek samping:${m.side_effects || '-'}\n`;
         });
       } else {
-        contextString += "No active medications recorded.\n";
+        contextString += "Belum ada obat.\n";
       }
 
-      contextString += "\nActive Medication Schedules:\n";
+      // Schedules - compact
+      contextString += "\nJADWAL:\n";
       if (schedules && schedules.length > 0) {
         schedules.forEach(s => {
-          const medName = (s.medications as any)?.name || "Unknown Medicine";
-          contextString += `- [ID: ${s.id}, Medication ID: ${s.medication_id}] ${medName}: ${s.dosis || '1 dose'} at ${s.scheduled_time}. Starts: ${s.start_date}${s.end_date ? `, Ends: ${s.end_date}` : ''}. Recurrence: ${s.instructions || 'daily'}\n`;
+          const medName = (s.medications as any)?.name || "?";
+          contextString += `• JadwalID:${s.id} | ObatID:${s.medication_id} (${medName}) | jam:${s.scheduled_time} | dosis:${s.dosis || '1'} | mulai:${s.start_date}${s.end_date ? ` s/d ${s.end_date}` : ''} | ${s.instructions || 'daily'}\n`;
         });
       } else {
-        contextString += "No schedules recorded.\n";
+        contextString += "Belum ada jadwal.\n";
       }
 
-      contextString += "\nRecent Compliance Logs (Last 7 Days):\n";
+      // Compliance logs - compact
+      contextString += "\nLOG KEPATUHAN (7 hari):\n";
       if (complianceLogs && complianceLogs.length > 0) {
         complianceLogs.forEach(log => {
-          const medName = (log.medication_schedules as any)?.medications?.name || "Unknown Medicine";
-          const dateStr = log.logged_at ? new Date(log.logged_at).toLocaleDateString() : 'Unknown Date';
-          contextString += `- [${dateStr}] ${medName}: Status: ${log.status}\n`;
+          const medName = (log.medication_schedules as any)?.medications?.name || "?";
+          const dateStr = log.logged_at ? new Date(log.logged_at).toLocaleDateString("id-ID") : '?';
+          contextString += `• ${dateStr} ${medName}: ${log.status}\n`;
         });
       } else {
-        contextString += "No recent compliance logs.\n";
+        contextString += "Tidak ada log.\n";
       }
 
+      // Drug interactions - NEW
+      contextString += "\nINTERAKSI OBAT TERCATAT:\n";
+      if (drugInteractions && drugInteractions.length > 0) {
+        drugInteractions.forEach(di => {
+          const pair = di.medication_pair || [di.target_medication, "?"];
+          contextString += `• InteraksiID:${di.id} | ${pair[0]} ↔ ${pair[1]} | risiko:${di.risk_level} | detail:${di.finding_details}\n`;
+        });
+      } else {
+        contextString += "Belum ada catatan interaksi.\n";
+      }
+
+      // Newly added items from current session
       if (newlyAdded && (newlyAdded.medications?.length > 0 || newlyAdded.schedules?.length > 0)) {
-        contextString += "\nNewly Added Medications/Schedules in This Conversation Session:\n";
+        contextString += "\nBARU DITAMBAHKAN SESI INI:\n";
         if (newlyAdded.medications && newlyAdded.medications.length > 0) {
           newlyAdded.medications.forEach((m: any) => {
-            contextString += `- Medication: ${m.name} has been added with [ID: ${m.id}].\n`;
+            contextString += `• Obat: ${m.name} (ID:${m.id})\n`;
           });
         }
         if (newlyAdded.schedules && newlyAdded.schedules.length > 0) {
           newlyAdded.schedules.forEach((s: any) => {
-            contextString += `- Schedule: at ${s.time} with [Schedule ID: ${s.id}] for medication ID ${s.medication_id}.\n`;
+            contextString += `• Jadwal: jam ${s.time} (JadwalID:${s.id}, ObatID:${s.medication_id})\n`;
           });
         }
-        contextString += `\nCRITICAL DIRECTIVE: The user just added the items listed under "Newly Added Medications/Schedules". If the user asks to modify, correct, update, change or edit any of these newly added items (e.g. changing the stock, name, dosage, or time), you MUST immediately generate the appropriate update action:
-- To update medication (such as stock, name, side effects, form, stock unit, or dosage): use the "update medication" action with the specific "medication_id" shown above.
-- To update schedule (such as scheduled time, dosis/dosage, or instructions/recurrence): use the "update schedule" action with the specific "schedule_id" shown above.
-Do not ask for confirmation or explain how to do it manually. Generate the JSON action command immediately.\n`;
+        contextString += "PENTING: Jika user minta koreksi item di atas, langsung generate aksi update/delete tanpa konfirmasi ulang.\n";
       }
     }
 
-    // Convert history to OpenAI format
-    const formattedHistory = (history as any[]).map((msg) => {
-      const rawText = msg.text || msg.content || "";
-      const cleanedText = rawText.replace(/^(User:|AI:)\s*/, "");
-      return {
-        role: msg.role === "user" ? "user" : "assistant",
-        content: cleanedText,
-      };
-    });
+    // ── Filter & format history ─────────────────────────────────────────
+    // CRITICAL FIX: exclude system messages from history sent to LLM
+    const formattedHistory = (history as any[])
+      .filter((msg) => {
+        const role = msg.role || "";
+        return role === "user" || role === "assistant" || role === "model";
+      })
+      .map((msg) => {
+        const rawText = msg.text || msg.content || "";
+        const cleanedText = rawText.replace(/^(User:|AI:)\s*/, "");
+        return {
+          role: msg.role === "user" ? "user" : "assistant",
+          content: cleanedText,
+        };
+      });
 
-    const systemInstruction = `You are a medicine reminder agent that reads images or text and returns a response with optionally an action response.
+    // ── System prompt — optimized for free/small LLMs ───────────────────
+    const systemInstruction = `Kamu adalah asisten pengingat obat yang cerdas dan empatik. Kamu membantu pasien mengelola obat, jadwal, dan interaksi obat mereka.
 
-Action responses are defined by exactly this format at the very end of your response, wrapped in a JSON array. You can perform the following actions:
+ATURAN UTAMA:
+- Jawab dalam Bahasa Indonesia yang ramah dan singkat
+- JANGAN berikan diagnosa medis. Sarankan konsultasi dokter untuk hal serius
+- Jika user minta aksi database (tambah/ubah/hapus obat/jadwal/interaksi), LANGSUNG generate JSON aksi. Jangan tanya konfirmasi berlebihan
+- Jika informasi kurang (misal nama obat tidak jelas), baru tanya sekali saja
+- JSON aksi HARUS ditulis di AKHIR respons, dalam format array JSON
 
-1. Adding a new medication and schedule:
-[{"action":"add to reminder database", "medicine_name":"string", "description":"string", "side_effects":"string", "form":"tablet", "dosisAmount":1, "stockUnit":"piece", "freqCount":3, "freqRange":"daily", "scheduledTimes":["08:00", "13:00", "20:00"], "stockQuantity":10}]
-(form: tablet|capsule|liquid|cream|injection|drops)
-(stockUnit: piece|ml|mg|drop|puff)
-(freqRange: daily|weekly|monthly)
+DAFTAR AKSI (tulis persis seperti contoh):
 
-2. Modifying/updating an existing medication:
-[{"action":"update medication", "medication_id":number, "stockQuantity":number, "medicine_name":"string", "description":"string", "side_effects":"string", "form":"tablet", "dosisAmount":1, "stockUnit":"piece"}]
-(Only medication_id is required; other fields are optional and should only be included if the user requested updates to those values.)
+1. TAMBAH OBAT BARU + JADWAL:
+[{"action":"add to reminder database","medicine_name":"Amoxicillin","description":"Antibiotik","side_effects":"Mual","form":"capsule","dosisAmount":1,"stockUnit":"piece","freqCount":2,"freqRange":"daily","scheduledTimes":["08:00","20:00"],"stockQuantity":10}]
+form: tablet|capsule|liquid|cream|injection|drops
+stockUnit: piece|ml|mg|drop|puff
+freqRange: daily|weekly|monthly
 
-3. Modifying/updating an existing schedule:
-[{"action":"update schedule", "schedule_id":number, "scheduled_time":"HH:MM", "dosis":"string", "instructions":"string"}]
-(Only schedule_id is required; other fields are optional.)
+2. UPDATE OBAT (field opsional, hanya sertakan yang berubah):
+[{"action":"update medication","medication_id":28,"stockQuantity":20}]
+Field opsional: medicine_name, description, side_effects, form, dosisAmount, stockUnit, stockQuantity
 
-For the 'stockQuantity' property:
-- If you know or can extract the stock quantity from the user's input/image, set it accordingly.
-- If you do not know the stock quantity, default it to 10, and ask the user to clarify if they have a different stock.
+3. UPDATE JADWAL (field opsional):
+[{"action":"update schedule","schedule_id":42,"scheduled_time":"16:00"}]
+Field opsional: scheduled_time, dosis, instructions
 
-Also you are a helpful and empathetic health assistant. You can answer questions about medicines, healthy habits, and general wellness. Do NOT give formal medical diagnoses. Always recommend consulting a real doctor for serious conditions.
+4. TAMBAH JADWAL KE OBAT YANG SUDAH ADA:
+[{"action":"add schedule","medication_id":28,"scheduled_time":"16:00","dosis":"1 capsule","instructions":"daily"}]
 
-Here is the current database context for the patient you are chatting with. Use this context to answer questions about their medications, schedules, and compliance/logs:
+5. HAPUS OBAT (beserta semua jadwal & log terkait):
+[{"action":"delete medication","medication_id":28}]
+
+6. HAPUS JADWAL:
+[{"action":"delete schedule","schedule_id":42}]
+
+7. TAMBAH INTERAKSI OBAT:
+[{"action":"add drug interaction","drug_1":"Amoxicillin","drug_2":"Ibuprofen","risk_level":"Moderate","finding_details":"Dapat menyebabkan iritasi lambung"}]
+risk_level: Low|Moderate|High|Severe
+
+8. HAPUS INTERAKSI OBAT:
+[{"action":"delete drug interaction","interaction_id":5}]
+
+TIPS PENTING:
+- Untuk mengubah jadwal dari 1 waktu ke 2 waktu: gunakan "update schedule" untuk waktu lama + "add schedule" untuk waktu baru. Contoh: ubah jadwal ID 42 (08:00) jadi 08:00 dan 16:00 → [{"action":"update schedule","schedule_id":42,"scheduled_time":"08:00"},{"action":"add schedule","medication_id":28,"scheduled_time":"16:00","dosis":"1 capsule","instructions":"daily"}]
+- Boleh gabung beberapa aksi dalam 1 array JSON
+- Jika stok tidak disebutkan user, default 10
+- Gunakan ID yang ada di konteks database, JANGAN mengarang ID
+
+DATA PASIEN SAAT INI:
 ${contextString}`;
 
     // Construct the latest user message with multimodal support if image exists
@@ -197,11 +257,16 @@ ${contextString}`;
     const data = await response.json();
     let responseText = data.choices?.[0]?.message?.content || "";
 
-    // Parse the JSON array action if exists
+    // ── Parse JSON action array from LLM response ──────────────────────
+    // Build a regex that matches any of the known action types
+    const actionTypesPattern = ALL_ACTION_TYPES.map(a => a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join("|");
+    const jsonRegex = new RegExp(`\\[\\s*\\{\\s*"action"\\s*:\\s*"(?:${actionTypesPattern})"[\\s\\S]*\\}\\s*\\]`);
+
     let extractedActions = null;
-    const jsonMatch = responseText.match(/\[\s*\{\s*"action"\s*:\s*"(?:add to reminder database|update medication|update schedule)"[\s\S]*\}/);
+    const jsonMatch = responseText.match(jsonRegex);
     if (jsonMatch) {
       let jsonString = jsonMatch[0].trim();
+      // Ensure the array is properly closed
       if (!jsonString.endsWith("]")) {
         jsonString += "]";
       }
@@ -213,6 +278,13 @@ ${contextString}`;
         console.error("Failed to parse action JSON", e);
       }
     }
+
+    // Clean up common LLM artifacts from free models
+    // Some free models output raw JSON objects like {'type':'text','text':'...'} instead of clean text
+    responseText = responseText
+      .replace(/^\s*\{['"]type['"]\s*:\s*['"]text['"]\s*,\s*['"]text['"]\s*:\s*['"]/i, '')
+      .replace(/['"]\s*\}\s*$/i, '')
+      .trim();
 
     return NextResponse.json({ text: responseText, extractedActions });
   } catch (error) {

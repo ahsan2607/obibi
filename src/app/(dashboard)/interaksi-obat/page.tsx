@@ -52,7 +52,7 @@ export default function DrugInteractionsPage() {
     if (!user || !med1 || !med2 || !details) return;
 
     if (med1 === med2) {
-      alert("Silakan pilih dua obat yang berbeda.");
+      alert("Please select two different medications.");
       return;
     }
 
@@ -73,7 +73,7 @@ export default function DrugInteractionsPage() {
 
     if (error) {
       console.error("Error adding interaction:", error);
-      alert("Gagal menyimpan interaksi obat.");
+      alert("Failed to save drug interaction.");
     } else if (data) {
       setInteractions([data as DrugInteraction, ...interactions]);
       setShowForm(false);
@@ -86,7 +86,7 @@ export default function DrugInteractionsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Hapus catatan interaksi ini?")) return;
+    if (!confirm("Delete this interaction record?")) return;
     const { error } = await supabase.from("drug_interactions").delete().eq("id", id);
     if (!error) {
       setInteractions(interactions.filter(i => i.id !== id));
@@ -111,46 +111,46 @@ export default function DrugInteractionsPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <ShieldAlert className="text-blue-600" />
-              Interaksi Obat
+              Drug Interactions
             </h1>
-            <p className="text-gray-500 mt-1">Catat dan pantau potensi interaksi antara obat-obatan Anda.</p>
+            <p className="text-gray-500 mt-1">Record and monitor potential interactions between your medications.</p>
           </div>
           <button 
             onClick={() => setShowForm(!showForm)}
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm"
           >
-            <Plus size={18} /> Tambah Interaksi
+            <Plus size={18} /> Add Interaction
           </button>
         </div>
 
         {showForm && (
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Catat Interaksi Baru</h2>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Record New Interaction</h2>
             <form onSubmit={handleAddInteraction} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Obat Pertama (1)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Medication (1)</label>
                   <select 
                     required 
                     value={med1} 
                     onChange={e => setMed1(e.target.value)}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
                   >
-                    <option value="">-- Pilih Obat --</option>
+                    <option value="">-- Select Medication --</option>
                     {medications.map(m => (
                       <option key={m.id} value={m.name}>{m.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Obat Kedua (2)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Second Medication (2)</label>
                   <select 
                     required 
                     value={med2} 
                     onChange={e => setMed2(e.target.value)}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
                   >
-                    <option value="">-- Pilih Obat --</option>
+                    <option value="">-- Select Medication --</option>
                     {medications.map(m => (
                       <option key={m.id} value={m.name}>{m.name}</option>
                     ))}
@@ -159,28 +159,28 @@ export default function DrugInteractionsPage() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tingkat Risiko (Risk Level)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Risk Level</label>
                 <select 
                   value={riskLevel} 
                   onChange={e => setRiskLevel(e.target.value)}
                   className="w-full md:w-1/2 border border-gray-300 rounded-md px-3 py-2 bg-white"
                 >
-                  <option value="Low">Low (Rendah)</option>
-                  <option value="Moderate">Moderate (Sedang)</option>
-                  <option value="High">High (Tinggi)</option>
-                  <option value="Severe">Severe (Sangat Bahaya)</option>
+                  <option value="Low">Low</option>
+                  <option value="Moderate">Moderate</option>
+                  <option value="High">High</option>
+                  <option value="Severe">Severe</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Efek Samping & Detail Interaksi</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Side Effects & Interaction Details</label>
                 <textarea 
                   required
                   rows={3}
                   value={details}
                   onChange={e => setDetails(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
-                  placeholder="Deskripsikan efek samping atau risiko bila mengonsumsi kedua obat ini secara bersamaan..."
+                  placeholder="Describe the side effects or risks of taking these two medications together..."
                 ></textarea>
               </div>
 
@@ -190,14 +190,14 @@ export default function DrugInteractionsPage() {
                   onClick={() => setShowForm(false)}
                   className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={isSubmitting}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 shadow-sm"
                 >
-                  {isSubmitting ? "Menyimpan..." : "Simpan Interaksi"}
+                  {isSubmitting ? "Saving..." : "Save Interaction"}
                 </button>
               </div>
             </form>
@@ -213,9 +213,9 @@ export default function DrugInteractionsPage() {
             <div className="bg-blue-50 p-4 rounded-full mb-4">
               <ShieldAlert className="w-8 h-8 text-blue-500" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Belum ada interaksi obat</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">No drug interactions yet</h3>
             <p className="text-gray-500 max-w-sm">
-              Anda belum mencatat interaksi obat apapun. Gunakan tombol "Tambah Interaksi" untuk mencatat efek samping gabungan antar obat yang Anda ketahui.
+              You haven't recorded any drug interactions yet. Use the "Add Interaction" button to record combined side effects between medications you know.
             </p>
           </div>
         ) : (
@@ -233,7 +233,7 @@ export default function DrugInteractionsPage() {
                   <div className="flex-1">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
                       <span className="font-bold text-gray-900">{medA}</span>
-                      <span className="text-gray-400 text-sm">berinteraksi dengan</span>
+                      <span className="text-gray-400 text-sm">interacts with</span>
                       <span className="font-bold text-gray-900">{medB}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full border font-semibold ml-auto sm:ml-2 ${getRiskColor(interaction.risk_level)}`}>
                         {interaction.risk_level} Risk
@@ -244,7 +244,7 @@ export default function DrugInteractionsPage() {
                   <button 
                     onClick={() => handleDelete(interaction.id)}
                     className="absolute top-4 right-4 text-gray-400 hover:text-red-500 opacity-0 md:group-hover:opacity-100 transition-opacity"
-                    title="Hapus catatan ini"
+                    title="Delete this record"
                   >
                     <Trash2 size={18} />
                   </button>
