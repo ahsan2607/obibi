@@ -173,28 +173,8 @@
 
 % --- SLIDE: ARSITEKTUR SISTEM ---
 \begin{frame}{Arsitektur Perangkat Lunak}
-    \begin{center}
-        \begin{tikzpicture}[node distance=1.2cm, auto, >=Stealth]
-            % Nodes
-            \node (client) [rectangle, draw, fill=lightblue, minimum width=2cm, minimum height=0.8cm] {Client (Browser)};
-            \node (server) [rectangle, draw, fill=lightblue, minimum width=2cm, minimum height=0.8cm, below=of client] {Server (Next.js)};
-            \node (ai) [rectangle, draw, fill=lightblue, minimum width=2cm, minimum height=0.8cm, below=of server] {AI Engine (LLM \& GraphRAG)};
-            \node (db) [rectangle, draw, fill=lightblue, minimum width=2cm, minimum height=0.8cm, below=of ai] {Database (PostgreSQL)};
-            
-            % Arrows
-            \draw[->] (client) -- node[right] {HTTPS} (server);
-            \draw[->] (server) -- node[right] {API} (ai);
-            \draw[->] (server) -- node[right] {Query} (db);
-            \draw[<->] (ai) -- node[right] {Data} (db);
-            
-            % Notes
-            \node [above right=0.2cm and -0.5cm of client] {\tiny{React + Supabase}};
-            \node [above right=0.2cm and -0.5cm of server] {\tiny{API Routes + Middleware}};
-            \node [above right=0.2cm and -0.5cm of ai] {\tiny{Agentic AI + GraphRAG}};
-            \node [above right=0.2cm and -0.5cm of db] {\tiny{Supabase/PostgreSQL}};
-        \end{tikzpicture}
-    \end{center}
-    \vspace{0.2cm}
+    \centering
+    \includegraphics[height=0.55\textheight, keepaspectratio]{arsitektur.jpeg}
     \begin{flushright}
         \tiny{\textit{Sumber: DPPL Aplikasi Obibi}}
     \end{flushright}
@@ -202,8 +182,8 @@
 
 % --- SLIDE: USE CASE DIAGRAM ---
 \begin{frame}{Use Case Diagram}
-    \begin{center}
-        \begin{tikzpicture}[scale=0.75, every node/.style={transform shape}]
+    \centering
+    \begin{tikzpicture}[scale=0.52, every node/.style={transform shape}]
           % Actors
           \draw[fill=lightblue] (0, 2) circle (0.3);
           \draw (0, 1.7) -- (0, 0.7);
@@ -241,8 +221,7 @@
 
           \draw (9.7, 1.4) -- (uc1.east);
           \draw (9.7, 1.4) -- (uc2.east);
-        \end{tikzpicture}
-    \end{center}
+    \end{tikzpicture}
     \begin{flushright}
         \tiny{\textit{Sumber: SKPL \& DPPL Aplikasi Obibi}}
     \end{flushright}
@@ -250,9 +229,8 @@
 
 % --- SLIDE: ERD ---
 \begin{frame}{Entity Relationship Diagram (ERD)}
-    \begin{center}
-        \includegraphics[width=0.65\textwidth]{erd.jpeg}
-    \end{center}
+    \centering
+    \includegraphics[height=0.55\textheight, keepaspectratio]{erd.jpeg}
     \begin{flushright}
         \tiny{\textit{Sumber: SKPL \& DPPL Aplikasi Obibi}}
     \end{flushright}
@@ -260,9 +238,8 @@
 
 % --- SLIDE: DIAGRAM KELAS ---
 \begin{frame}{Diagram Kelas (Perancangan)}
-    \begin{center}
-        \includegraphics[width=0.55\textwidth]{class_diagram.jpeg}
-    \end{center}
+    \centering
+    \includegraphics[height=0.55\textheight, keepaspectratio]{class_diagram.jpeg}
     \begin{flushright}
         \tiny{\textit{Sumber: DPPL Aplikasi Obibi}}
     \end{flushright}
@@ -433,8 +410,8 @@
 
 % --- SLIDE: SEQUENCE DIAGRAM ---
 \begin{frame}{Sequence Diagram: Input Jadwal Obat}
-    \begin{center}
-        \begin{tikzpicture}[scale=0.75, every node/.style={transform shape}]
+    \centering
+    \begin{tikzpicture}[scale=0.5, every node/.style={transform shape}]
           % Lifelines
           \draw[thick, dashed] (0, 4) -- (0, 0);
           \draw[thick, dashed] (3, 4) -- (3, 0);
@@ -455,8 +432,7 @@
           \draw[->, >=Stealth, dashed] (9, 1.8) -- node[above] {\tiny 4. Konfirmasi Sukses} (6, 1.8);
           \draw[->, >=Stealth, dashed] (6, 1.2) -- node[above] {\tiny 5. Respons Sukses (JSON)} (3, 1.2);
           \draw[->, >=Stealth, dashed] (3, 0.6) -- node[above] {\tiny 6. Tampilkan Notifikasi} (0, 0.6);
-        \end{tikzpicture}
-    \end{center}
+    \end{tikzpicture}
     \begin{flushright}
         \tiny{\textit{Sumber: DPPL Aplikasi Obibi}}
     \end{flushright}
@@ -592,15 +568,13 @@
     \begin{columns}[T]
         \column{0.5\textwidth}
         \textbf{Login Sukses}
-        \begin{center}
-            \includegraphics[width=0.8\textwidth]{loginberhasil.png}
-        \end{center}
+        \centering
+        \includegraphics[width=0.65\textwidth]{loginberhasil.png}
         
         \column{0.5\textwidth}
         \textbf{Register Sukses}
-        \begin{center}
-            \includegraphics[width=0.8\textwidth]{registerberhasil.png}
-        \end{center}
+        \centering
+        \includegraphics[width=0.65\textwidth]{registerberhasil.png}
     \end{columns}
     \begin{flushright}
         \tiny{\textit{Sumber: DUPL Aplikasi Obibi}}
@@ -612,24 +586,23 @@
     \begin{columns}[T]
         \column{0.5\textwidth}
         \textbf{Error Koneksi}
-        \begin{center}
-            \includegraphics[width=0.8\textwidth]{regErrornointernet.png}
-        \end{center}
+        \centering
+        \includegraphics[width=0.65\textwidth]{regErrornointernet.png}
         
         \column{0.5\textwidth}
         \textbf{Hasil Interaksi Obat}
-        \begin{center}
-            \includegraphics[width=0.8\textwidth]{laporankepatuhan.png}
-        \end{center}
+        \centering
+        \includegraphics[width=0.65\textwidth]{laporankepatuhan.png}
     \end{columns}
 \end{frame}
 
 % --- SLIDE: SCREENSHOT PENGUJIAN (3) ---
 \begin{frame}{Lampiran: Screenshot Pengujian (3)}
-    \begin{center}
-        \textbf{Input Jadwal Obat}
-        \includegraphics[width=0.6\textwidth]{jadwal_obat.jpeg}
-    \end{center}
+    \centering
+    \textbf{Input Jadwal Obat}
+    \vspace{0.2cm}
+    
+    \includegraphics[height=0.55\textheight, keepaspectratio]{jadwal_obat.jpeg}
     \begin{flushright}
         \tiny{\textit{Sumber: DUPL Aplikasi Obibi}}
     \end{flushright}
@@ -637,10 +610,11 @@
 
 % --- SLIDE: SCREENSHOT PENGUJIAN (4) ---
 \begin{frame}{Lampiran: Screenshot Pengujian (4)}
-    \begin{center}
-        \textbf{Kelola Data Obat}
-        \includegraphics[width=0.6\textwidth]{kelola_obat.png}
-    \end{center}
+    \centering
+    \textbf{Kelola Data Obat}
+    \vspace{0.2cm}
+    
+    \includegraphics[height=0.55\textheight, keepaspectratio]{kelola_obat.png}
     \begin{flushright}
         \tiny{\textit{Sumber: DUPL Aplikasi Obibi}}
     \end{flushright}
