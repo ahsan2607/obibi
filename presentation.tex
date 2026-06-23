@@ -247,165 +247,146 @@
 
 % --- SLIDE: USE CASE SCENARIO #1 ---
 \begin{frame}{Use Case: Registrasi Pengguna Baru}
-    \begin{columns}[T]
-        \column{0.5\textwidth}
-        \textbf{Skenario Normal:}
-        \begin{enumerate}
-            \item Calon pengguna membuka halaman register.
-            \item Mengisi data diri (Nama, Email, Kata Sandi).
-            \item Menekan tombol "Register".
-            \item Sistem memvalidasi data dan menyimpan ke database.
-            \item Pengguna diarahkan ke halaman login.
-        \end{enumerate}
+    \centering
+    \begin{tikzpicture}[auto, >=Stealth, scale=0.85, every node/.style={transform shape},
+        block/.style={rectangle, draw, fill=blue!10, text width=2.4cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny},
+        decision/.style={diamond, draw, fill=yellow!10, text width=1.3cm, align=center, inner sep=0pt, font=\tiny},
+        err/.style={rectangle, draw, fill=red!10, text width=2.4cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny},
+        succ/.style={rectangle, draw, fill=green!10, text width=2.6cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny}]
         
-        \column{0.5\textwidth}
-        \textbf{Alternatif:}
-        \begin{itemize}
-            \item Email sudah terdaftar: Sistem menampilkan peringatan.
-            \item Koneksi internet terputus: Sistem menampilkan pesan error koneksi.
-        \end{itemize}
-        \vspace{0.3cm}
-        \textbf{Post-Condition:}
-        \begin{itemize}
-            \item Akun pengguna berhasil terdaftar di database.
-        \end{itemize}
-    \end{columns}
+        \node (n1) [block] {1. Buka Halaman Register};
+        \node (n2) [block, right=0.5cm of n1] {2. Isi Data Diri (Nama, Email, Sandi)};
+        \node (n3) [block, right=0.5cm of n2] {3. Klik "Register"};
+        \node (n4) [decision, below=0.4cm of n3] {Validasi \& Koneksi?};
+        \node (n5) [succ, left=0.6cm of n4] {5. Sukses: Sesi Dibuat \& Masuk Halaman};
+        \node (n6) [err, right=0.6cm of n4] {Gagal: Email terdaftar / Offline};
+        
+        \draw[->] (n1) -- (n2);
+        \draw[->] (n2) -- (n3);
+        \draw[->] (n3) -- (n4);
+        \draw[->] (n4) -- node[above] {\tiny Sukses} (n5);
+        \draw[->] (n4) -- node[above] {\tiny Gagal} (n6);
+    \end{tikzpicture}
 \end{frame}
 
 % --- SLIDE: USE CASE SCENARIO #2 ---
 \begin{frame}{Use Case: Login Pengguna}
-    \begin{columns}[T]
-        \column{0.5\textwidth}
-        \textbf{Skenario Normal:}
-        \begin{enumerate}
-            \item Pengguna membuka halaman login.
-            \item Memasukkan Email dan Kata Sandi yang valid.
-            \item Menekan tombol "Login".
-            \item Sistem memvalidasi kredensial pengguna.
-            \item Pengguna diarahkan ke dashboard utama.
-        \end{enumerate}
+    \centering
+    \begin{tikzpicture}[auto, >=Stealth, scale=0.85, every node/.style={transform shape},
+        block/.style={rectangle, draw, fill=blue!10, text width=2.4cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny},
+        decision/.style={diamond, draw, fill=yellow!10, text width=1.3cm, align=center, inner sep=0pt, font=\tiny},
+        err/.style={rectangle, draw, fill=red!10, text width=2.4cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny},
+        succ/.style={rectangle, draw, fill=green!10, text width=2.6cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny}]
         
-        \column{0.5\textwidth}
-        \textbf{Alternatif:}
-        \begin{itemize}
-            \item Kredensial tidak valid: Sistem menampilkan pesan kesalahan login.
-            \item Koneksi terputus: Tampil pesan kesalahan jaringan.
-        \end{itemize}
-        \vspace{0.3cm}
-        \textbf{Post-Condition:}
-        \begin{itemize}
-            \item Sesi pengguna aktif dibuat dan masuk ke dashboard.
-        \end{itemize}
-    \end{columns}
+        \node (n1) [block] {1. Buka Halaman Login};
+        \node (n2) [block, right=0.5cm of n1] {2. Masukkan Email \& Kata Sandi};
+        \node (n3) [block, right=0.5cm of n2] {3. Klik "Login"};
+        \node (n4) [decision, below=0.4cm of n3] {Kredensial Valid?};
+        \node (n5) [succ, left=0.6cm of n4] {5. Sukses: Sesi Aktif \& Masuk Dashboard};
+        \node (n6) [err, right=0.6cm of n4] {Gagal: Jaringan Eror / Kredensial Salah};
+        
+        \draw[->] (n1) -- (n2);
+        \draw[->] (n2) -- (n3);
+        \draw[->] (n3) -- (n4);
+        \draw[->] (n4) -- node[above] {\tiny Ya} (n5);
+        \draw[->] (n4) -- node[above] {\tiny Tidak} (n6);
+    \end{tikzpicture}
 \end{frame}
 
 % --- SLIDE: USE CASE SCENARIO #3 ---
 \begin{frame}{Use Case: Kelola Data Obat}
-    \begin{columns}[T]
-        \column{0.5\textwidth}
-        \textbf{Skenario Normal:}
-        \begin{enumerate}
-            \item Pasien membuka menu Kelola Obat.
-            \item Klik Tambah Obat.
-            \item Isi form (Nama, Deskripsi, Dosis, Stok, Bentuk).
-            \item Klik Simpan Obat.
-            \item Sistem validasi data dan simpan ke database.
-        \end{enumerate}
+    \centering
+    \begin{tikzpicture}[auto, >=Stealth, scale=0.85, every node/.style={transform shape},
+        block/.style={rectangle, draw, fill=blue!10, text width=2.4cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny},
+        decision/.style={diamond, draw, fill=yellow!10, text width=1.3cm, align=center, inner sep=0pt, font=\tiny},
+        err/.style={rectangle, draw, fill=red!10, text width=2.4cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny},
+        succ/.style={rectangle, draw, fill=green!10, text width=2.6cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny}]
         
-        \column{0.5\textwidth}
-        \textbf{Alternatif:}
-        \begin{itemize}
-            \item Input kosong / tidak valid: sistem menampilkan pesan kesalahan.
-            \item Hapus obat: Pasien mengonfirmasi dialog hapus, sistem menghapus obat beserta jadwal terkait secara cascade.
-        \end{itemize}
-        \vspace{0.3cm}
-        \textbf{Post-Condition:}
-        \begin{itemize}
-            \item Data obat terupdate di database dan muncul di daftar.
-        \end{itemize}
-    \end{columns}
+        \node (n1) [block] {1. Buka Menu Kelola Obat};
+        \node (n2) [block, right=0.5cm of n1] {2. Isi Form Tambah / Pilih Hapus};
+        \node (n3) [block, right=0.5cm of n2] {3. Klik Simpan / Konfirmasi Hapus};
+        \node (n4) [decision, below=0.4cm of n3] {Validasi Sukses?};
+        \node (n5) [succ, left=0.6cm of n4] {5. Sukses: Data Obat Terupdate (Cascade)};
+        \node (n6) [err, right=0.6cm of n4] {Gagal: Input Kosong / Database Error};
+        
+        \draw[->] (n1) -- (n2);
+        \draw[->] (n2) -- (n3);
+        \draw[->] (n3) -- (n4);
+        \draw[->] (n4) -- node[above] {\tiny Ya} (n5);
+        \draw[->] (n4) -- node[above] {\tiny Tidak} (n6);
+    \end{tikzpicture}
 \end{frame}
 
 % --- SLIDE: USE CASE SCENARIO #4 ---
 \begin{frame}{Use Case: Input Jadwal Minum Obat}
-    \begin{columns}[T]
-        \column{0.5\textwidth}
-        \textbf{Skenario Normal:}
-        \begin{enumerate}
-            \item Pasien buka halaman Kelola Obat.
-            \item Klik Tambah Jadwal.
-            \item Isi form (Tipe, Waktu, Tanggal).
-            \item Klik Simpan Jadwal.
-            \item Sistem validasi dan simpan ke database.
-            \item \textit{Cronjob} reminder aktif.
-        \end{enumerate}
+    \centering
+    \begin{tikzpicture}[auto, >=Stealth, scale=0.85, every node/.style={transform shape},
+        block/.style={rectangle, draw, fill=blue!10, text width=2.4cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny},
+        decision/.style={diamond, draw, fill=yellow!10, text width=1.3cm, align=center, inner sep=0pt, font=\tiny},
+        err/.style={rectangle, draw, fill=red!10, text width=2.4cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny},
+        succ/.style={rectangle, draw, fill=green!10, text width=2.6cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny}]
         
-        \column{0.5\textwidth}
-        \textbf{Alternatif:}
-        \begin{itemize}
-            \item Validasi gagal: tampilkan pesan error.
-            \item Database error: notifikasi gagal simpan.
-            \item Cronjob gagal: log error, retry otomatis.
-        \end{itemize}
-        \vspace{0.3cm}
-        \textbf{Post-Condition:}
-        \begin{itemize}
-            \item Jadwal tersimpan, cronjob aktif.
-        \end{itemize}
-    \end{columns}
+        \node (n1) [block] {1. Buka Halaman Jadwal};
+        \node (n2) [block, right=0.5cm of n1] {2. Klik Tambah \& Isi Waktu/Dosis};
+        \node (n3) [block, right=0.5cm of n2] {3. Klik Simpan Jadwal};
+        \node (n4) [decision, below=0.4cm of n3] {Format Valid?};
+        \node (n5) [succ, left=0.6cm of n4] {5. Sukses: Jadwal Aktif \& Cronjob Reminder};
+        \node (n6) [err, right=0.6cm of n4] {Gagal: Format Salah / Server Eror};
+        
+        \draw[->] (n1) -- (n2);
+        \draw[->] (n2) -- (n3);
+        \draw[->] (n3) -- (n4);
+        \draw[->] (n4) -- node[above] {\tiny Ya} (n5);
+        \draw[->] (n4) -- node[above] {\tiny Tidak} (n6);
+    \end{tikzpicture}
 \end{frame}
 
 % --- SLIDE: USE CASE SCENARIO #5 ---
 \begin{frame}{Use Case: Cek Interaksi Antar Obat}
-    \begin{columns}[T]
-        \column{0.5\textwidth}
-        \textbf{Skenario Normal:}
-        \begin{enumerate}
-            \item Pasien membuka menu interaksi.
-            \item Pasien mengecek interaksi antar obat.
-            \item Sistem AI mengecek data jurnal klinis (GraphRAG).
-            \item Sistem mencari konteks dan membuat kesimpulan.
-            \item Pasien menerima hasil analisis \& rekomendasi.
-        \end{enumerate}
+    \centering
+    \begin{tikzpicture}[auto, >=Stealth, scale=0.85, every node/.style={transform shape},
+        block/.style={rectangle, draw, fill=blue!10, text width=2.4cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny},
+        decision/.style={diamond, draw, fill=yellow!10, text width=1.3cm, align=center, inner sep=0pt, font=\tiny},
+        err/.style={rectangle, draw, fill=red!10, text width=2.4cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny},
+        succ/.style={rectangle, draw, fill=green!10, text width=2.6cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny}]
         
-        \column{0.5\textwidth}
-        \textbf{Alternatif:}
-        \begin{itemize}
-            \item Jika obat tidak ditemukan, sistem menyarankan konsultasi dokter.
-        \end{itemize}
-        \vspace{0.3cm}
-        \textbf{Post-Condition:}
-        \begin{itemize}
-            \item Pasien melihat kesimpulan interaksi obat.
-        \end{itemize}
-    \end{columns}
+        \node (n1) [block] {1. Buka Menu Interaksi};
+        \node (n2) [block, right=0.5cm of n1] {2. Input Nama Obat (Aspirin, dsb)};
+        \node (n3) [block, right=0.5cm of n2] {3. Klik Cek Interaksi};
+        \node (n4) [decision, below=0.4cm of n3] {Obat Terdaftar?};
+        \node (n5) [succ, left=0.6cm of n4] {5. Sukses: Tampil Hasil \& Rekomendasi};
+        \node (n6) [err, right=0.6cm of n4] {Gagal: Tampil Peringatan Konsul Dokter};
+        
+        \draw[->] (n1) -- (n2);
+        \draw[->] (n2) -- (n3);
+        \draw[->] (n3) -- (n4);
+        \draw[->] (n4) -- node[above] {\tiny Ya} (n5);
+        \draw[->] (n4) -- node[above] {\tiny Tidak} (n6);
+    \end{tikzpicture}
 \end{frame}
 
 % --- SLIDE: USE CASE SCENARIO #6 ---
 \begin{frame}{Use Case: Chat dengan Asisten AI (Obibi)}
-    \begin{columns}[T]
-        \column{0.5\textwidth}
-        \textbf{Skenario Normal:}
-        \begin{enumerate}
-            \item Pasien membuka halaman Chat.
-            \item Mengetik pertanyaan medis / merekam perintah suara.
-            \item Menekan kirim.
-            \item AI Engine memproses pertanyaan dengan GraphRAG.
-            \item Sistem menampilkan respon asisten virtual kesehatan.
-        \end{enumerate}
+    \centering
+    \begin{tikzpicture}[auto, >=Stealth, scale=0.85, every node/.style={transform shape},
+        block/.style={rectangle, draw, fill=blue!10, text width=2.4cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny},
+        decision/.style={diamond, draw, fill=yellow!10, text width=1.3cm, align=center, inner sep=0pt, font=\tiny},
+        err/.style={rectangle, draw, fill=red!10, text width=2.4cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny},
+        succ/.style={rectangle, draw, fill=green!10, text width=2.6cm, align=center, rounded corners, minimum height=0.6cm, font=\tiny}]
         
-        \column{0.5\textwidth}
-        \textbf{Alternatif:}
-        \begin{itemize}
-            \item AI Engine lambat / timeout: Menampilkan pesan fallback untuk mencoba lagi.
-            \item Suara tidak jelas (STT): Meminta pengguna mengulangi perintah suara.
-        \end{itemize}
-        \vspace{0.3cm}
-        \textbf{Post-Condition:}
-        \begin{itemize}
-            \item Riwayat percakapan pasien tersimpan.
-        \end{itemize}
-    \end{columns}
+        \node (n1) [block] {1. Masuk Halaman Chat AI};
+        \node (n2) [block, right=0.5cm of n1] {2. Kirim Pertanyaan / Suara / Foto};
+        \node (n3) [block, right=0.5cm of n2] {3. Pemrosesan GraphRAG};
+        \node (n4) [decision, below=0.4cm of n3] {Respon Sukses?};
+        \node (n5) [succ, left=0.6cm of n4] {5. Sukses: Tampil Respon AI \& Simpan Chat};
+        \node (n6) [err, right=0.6cm of n4] {Gagal: Timeout / Suara Tidak Jelas};
+        
+        \draw[->] (n1) -- (n2);
+        \draw[->] (n2) -- (n3);
+        \draw[->] (n3) -- (n4);
+        \draw[->] (n4) -- node[above] {\tiny Ya} (n5);
+        \draw[->] (n4) -- node[above] {\tiny Tidak} (n6);
+    \end{tikzpicture}
 \end{frame}
 
 % --- SLIDE: SEQUENCE DIAGRAM ---
