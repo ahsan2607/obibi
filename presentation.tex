@@ -120,24 +120,24 @@
 \begin{frame}{Kebutuhan Fungsional (FR)}
     \begin{table}[]
     \tiny
-    \begin{tabular}{|c|p{0.45\textwidth}|c|}
+    \begin{tabular}{|c|c|p{0.45\textwidth}|c|}
         \hline
-        \textbf{No} & \textbf{Nama Fungsional} & \textbf{Tipe} \\
+        \textbf{No} & \textbf{Kode FR} & \textbf{Nama Fungsional} & \textbf{Tipe FR} \\
         \hline
-        FR01 & Manajemen Akun Pengguna (Login/Register) & Must Have \\
-        FR02 & Manajemen Data Obat & Must Have \\
-        FR03 & Manajemen Jadwal Konsumsi Obat & Must Have \\
-        FR04 & Notifikasi Pengingat Obat & Must Have \\
-        FR05 & Catat Konsumsi Obat (Mark as Taken) & Must Have \\
-        FR06 & Laporan Kepatuhan & Satisfy \\
-        FR07 & Deteksi \& Manajemen Interaksi Obat & Satisfy \\
-        FR08 & Chat dengan Asisten AI (Obibi) & Delighter \\
-        FR09 & Tambah Obat Otomatis lewat AI & Delighter \\
-        FR10 & Konversi Suara (STT \& TTS) & Satisfy \\
+        1 & FR-01 & Autentikasi Pengguna (Login/Register) & Must Have \\
+        2 & FR-02 & Manajemen Data Obat & Must Have \\
+        3 & FR-03 & Penjadwalan Konsumsi Obat & Must Have \\
+        4 & FR-04 & Notifikasi Pengingat Obat & Must Have \\
+        5 & FR-05 & Pencatatan Kepatuhan Konsumsi & Must Have \\
+        6 & FR-06 & Laporan \& Ekspor Kepatuhan & Satisfy \\
+        7 & FR-07 & Konsultasi AI Assistant & Must Have \\
+        8 & FR-08 & Penambahan Obat Otomatis via AI & Satisfy \\
+        9 & FR-09 & Konversi Suara ke Teks (STT) & Delighter \\
+        10 & FR-10 & Deteksi Interaksi Antarobat & Must Have \\
         \hline
     \end{tabular}
     \end{table}
-    \vspace{0.2cm}
+    \vspace{0.1cm}
     \begin{flushright}
         \tiny{\textit{Sumber: SKPL Aplikasi Obibi}}
     \end{flushright}
@@ -224,12 +224,12 @@
           \node at (5, 4.7) {\textbf{Aplikasi Obibi}};
 
           % Use Cases
-          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc1) at (5, 3.8) {\tiny Manajemen Akun};
-          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc2) at (5, 2.7) {\tiny Kelola Data Obat};
-          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc3) at (5, 1.6) {\tiny Kelola Jadwal Obat};
-          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc4) at (5, 0.5) {\tiny Cek Interaksi Obat};
-          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc5) at (5, -0.6) {\tiny Chat Asisten AI};
-          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc6) at (5, -1.7) {\tiny Laporan Kepatuhan};
+          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc1) at (5, 3.8) {\tiny Autentikasi Pengguna};
+          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc2) at (5, 2.7) {\tiny Manajemen Data Obat};
+          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc3) at (5, 1.6) {\tiny Penjadwalan Konsumsi};
+          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc4) at (5, 0.5) {\tiny Deteksi Interaksi};
+          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc5) at (5, -0.6) {\tiny Konsultasi AI Assistant};
+          \node[draw, ellipse, fill=white, minimum width=2.5cm] (uc6) at (5, -1.7) {\tiny Laporan \& Ekspor};
 
           % Associations
           \draw (0.3, 1.4) -- (uc1.west);
@@ -251,7 +251,7 @@
 % --- SLIDE: ERD ---
 \begin{frame}{Entity Relationship Diagram (ERD)}
     \begin{center}
-        \includegraphics[width=0.65\textwidth]{db.jpeg}
+        \includegraphics[width=0.65\textwidth]{erd.jpeg}
     \end{center}
     \begin{flushright}
         \tiny{\textit{Sumber: SKPL \& DPPL Aplikasi Obibi}}
@@ -524,14 +524,14 @@
 % --- SLIDE: MATRIKS PENGUJIAN TERHADAP REQUIREMENT ---
 \begin{frame}{Matriks Pengujian terhadap FR}
     \begin{table}[]
-    \begin{tabular}{|c|c|c|}
+    \begin{tabular}{|c|c|p{0.5\textwidth}|}
         \hline
         \textbf{Kode FR} & \textbf{Functional Requirement} & \textbf{ID DUPL} \\
         \hline
-        FR-01 & Manajemen Akun Pengguna & DUPL-LOGIN-01, DUPL-LOGIN-02, DUPL-REGISTER-01, DUPL-REGISTER-02 \\
-        FR-03 & Kelola Data Obat & DUPL-OBAT-01 s.d. 03 \\
-        FR-05 & Analisis Interaksi Obat & DUPL-INTERAKSI-01 s.d. 03 \\
-        FR-07 & Personalisasi Jadwal Pengobatan & DUPL-JADWAL-01 s.d. 03 \\
+        FR-01 & Autentikasi Pengguna & DUPL-LOGIN-01, DUPL-LOGIN-02, DUPL-REGISTER-01, DUPL-REGISTER-02 \\
+        FR-02 & Manajemen Data Obat & DUPL-OBAT-01 s.d. 03 \\
+        FR-03 & Penjadwalan Konsumsi Obat & DUPL-JADWAL-01 s.d. 03 \\
+        FR-10 & Deteksi Interaksi Antarobat & DUPL-INTERAKSI-01 s.d. 03 \\
         \hline
     \end{tabular}
     \end{table}
